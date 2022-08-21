@@ -1,9 +1,9 @@
-from defi_infrastructure.api3.boost.auctions.auction import Auction
-from defi_infrastructure.api3.boost.auctions.item import Item
-from defi_infrastructure.api3.boost.auctions.user import Participant
-from defi_infrastructure.api3.boost.auctions.signer import sign_confirmation
-from defi_infrastructure.api3.boost.auctions.http_server_v2 import AuctionHttp2
-from defi_infrastructure.api3.boost.auctions.http_price_check import pricing
+from auctions.auction import Auction
+from auctions.item import Item
+from auctions.user import Participant
+from auctions.signer import sign_confirmation
+from auctions.http_server_v2 import AuctionHttp2
+from auctions.http_price_check import pricing
 from web3 import Web3, HTTPProvider
 from hdwallet import HDWallet
 import datetime, time, os, asyncio, json

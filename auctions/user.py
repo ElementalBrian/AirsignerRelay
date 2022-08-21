@@ -1,5 +1,5 @@
 # Participant is an object for indibidual bidders
-from defi_infrastructure.api3.boost.auctions.bid import Bid
+from auctions.bid import Bid
 
 class Participant:
     def __init__(self, address, api_key):
