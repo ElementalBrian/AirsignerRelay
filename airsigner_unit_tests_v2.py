@@ -2,7 +2,7 @@ import requests, json, random, secrets, warnings, time
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
-URL = "http://192.168.1.93:33666/"
+URL = "http://192.168.1.93:33666/" # put yur own IP here m8
 
 def get_random_endpoint_id():
     return "0x" + secrets.token_hex(32)
