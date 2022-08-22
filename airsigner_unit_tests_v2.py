@@ -17,9 +17,9 @@ def get_random_user():
 def get_random_bid():
     return random.randrange(.1*10**18, 10*10**18, .00001*10**18)
 
-def place_bid(key, address, amount, endpoint_id):
+def place_bid(key, address, amount, endpoint_id, chain_id):
     endpoint = URL + "bid"
-    payload = {"key": key, "searcher": address, "amount": amount, "endpoint": endpoint_id}
+    payload = {"key": key, "searcher": address, "amount": amount, "endpoint": endpoint_id, "chain": chain_id}
     encoded_parameters = '{"encodedParameters": "0x3173000000000000000000000000000000000000000000000000000000000000636f696e49640000000000000000000000000000000000000000000000000000657468657265756d000000000000000000000000000000000000000000000000"}'
     data = json.loads(encoded_parameters)
     r = requests.post(endpoint, params=payload, data=data)
@@ -44,16 +44,20 @@ def run_once():
     endpoint_id = get_random_endpoint_id()
     key, address = get_random_user()
     amount = get_random_bid()
-    auction_details = place_bid(key, address, amount, endpoint_id)
-    time.sleep(11)
-    claim_winning(auction_details["auction_id"], key)
+    auction_details = place_bid(key, address, amount, endpoint_id, 1)
+    if auction_details is not False:
+        time.sleep(11)
+        try:
+            claim_winning(auction_details["auction_id"], key)
+        except Exception as e:
+            print(f'{e}')
 
 def run_few():
     endpoint_id = get_random_endpoint_id()
     for i in range(0, 5):
         key, address = get_random_user()
         amount = get_random_bid()
-        auction_details = place_bid(key, address, amount, endpoint_id)
+        auction_details = place_bid(key, address, amount, endpoint_id, 1)
     time.sleep(11)
     claim_winning(auction_details["auction_id"], key)
 

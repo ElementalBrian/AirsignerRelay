@@ -1,9 +1,9 @@
-from auctions.auction import Auction
-from auctions.item import Item
-from auctions.user import Participant
-from auctions.signer import sign_confirmation
-from auctions.http_server_v2 import AuctionHttp2
-from auctions.http_price_check import pricing
+from defi_infrastructure.api3.boost.auctions.auction import Auction
+from defi_infrastructure.api3.boost.auctions.item import Item
+from defi_infrastructure.api3.boost.auctions.user import Participant
+from defi_infrastructure.api3.boost.auctions.signer import sign_confirmation
+from defi_infrastructure.api3.boost.auctions.http_server_v2 import AuctionHttp2
+from defi_infrastructure.api3.boost.auctions.http_price_check import pricing
 from web3 import Web3, HTTPProvider
 from hdwallet import HDWallet
 import datetime, time, os, asyncio, json
@@ -65,10 +65,10 @@ class AirsignerExecutionV2:
         if collect_garbage is not False:
             print(f'garbage collector: {collect_garbage}')
         if auction_id in self.ended_auctions.keys():
-            print(f"{self.this}: 'success': {signature}, 'price': {price}, 'price_decimals': {self.airnode_price_decimals}, 'timestamp': {auction_obj.start_time}, 'beacon_id': {template_id}, 'user': {auction_obj.highest_bid.bidder.name}, 'chain_id': {self.web3.eth.chain_id}, 'amount': {auction_obj.highest_bid.amount}")
+            print(f"{self.this}: 'success': {signature}, 'price': {price}, 'price_decimals': {self.airnode_price_decimals}, 'timestamp': {auction_obj.start_time}, 'beacon_id': {template_id}, 'user': {auction_obj.highest_bid.bidder.name}, 'chain_id': {auction_obj.item.chain_id}, 'amount': {auction_obj.highest_bid.amount}")
             del self.current_auctions[auction_id]
             self.winners.append(api_key)
-            return {'signature': signature, 'price': str(price), 'price_decimals': str(self.airnode_price_decimals), 'timestamp': str(auction_obj.start_time), 'beacon_id': template_id, 'user': auction_obj.highest_bid.bidder.name, 'chain_id': str(self.web3.eth.chain_id), 'amount': str(auction_obj.highest_bid.amount), "auction_id": auction_id}
+            return {'signature': signature, 'price': str(price), 'price_decimals': str(self.airnode_price_decimals), 'timestamp': str(auction_obj.start_time), 'beacon_id': template_id, 'user': auction_obj.highest_bid.bidder.name, 'chain_id': auction_obj.item.chain_id, 'amount': str(auction_obj.highest_bid.amount), "auction_id": auction_id}
 
     '''
     :param encoded_parameters: The Airnode ABI encoded parameters
@@ -78,25 +78,25 @@ class AirsignerExecutionV2:
     :param api_key: The user API key
     :return: JSON formatted output with details confirming receipt of the bid or failure reason
     '''
-    def place_bid(self, encoded_parameters, amount, searcher, endpoint_id, api_key):
+    def place_bid(self, encoded_parameters, amount, searcher, endpoint_id, api_key, chain_id):
         if not self._validate_and_build_user_object(searcher, api_key):
             print(f'{self.this}: {api_key} is not a valid key')
             return {'failure': f'{api_key} is not a valid key'}
         template_id = Web3.solidityKeccak(['address', 'bytes32', 'bytes'], [self.airnode_address, endpoint_id, encoded_parameters]).hex()
         auction_start = int(time.mktime(datetime.datetime.now().timetuple())) - int(time.mktime(datetime.datetime.now().timetuple())) % self.auction_runtime_seconds
-        auction_id = Web3.solidityKeccak(['uint256', 'bytes32'], [auction_start, template_id]).hex()
+        auction_id = Web3.solidityKeccak(['uint256', 'bytes32', 'uint256'], [auction_start, template_id, chain_id]).hex()
         if api_key == self.winners[-1]:
             print(f'{self.this}: {api_key} won the most recent auction therefore is rate limited for this one')
             return {'failure': f'{api_key} won the most recent auction therefore is rate limited for this one'}
         if auction_id not in self.current_auctions.keys():
-            auction_obj = self._create_auction(template_id, amount, auction_id, auction_start, encoded_parameters)
+            auction_obj = self._create_auction(template_id, amount, auction_id, auction_start, encoded_parameters, chain_id)
         else:
             auction_obj = self.current_auctions[auction_id]
         user_obj = self.participants[api_key]
         if auction_obj.highest_bid is None or amount > auction_obj.highest_bid.amount:
             user_obj.bid(auction_obj, amount)
         print(f'{self.this}: {searcher} bid of {amount} received for auction ID {auction_id} that started at {auction_start} and runs for {self.auction_runtime_seconds} seconds at endpoint {endpoint_id}')
-        return {'result': 'received', "auction_start": str(auction_start), 'encoded_parameters': encoded_parameters, 'endpoint_id': endpoint_id, 'searcher': searcher, 'amount': str(amount), "auction_id": auction_id}
+        return {'result': 'received', "auction_start": str(auction_start), 'encoded_parameters': encoded_parameters, 'endpoint_id': endpoint_id, 'searcher': searcher, 'amount': str(amount), "auction_id": auction_id, "chain_id": chain_id}
 
     '''
     :param admin_key: The admin API key
@@ -182,8 +182,8 @@ class AirsignerExecutionV2:
             # print(f'{self.this}: signature failure')
             return "0x_fake_signature_because_for_some_reason_the_signing_doesnt_work_on_my_vm_but_works_everywhere_else"
 
-    def _create_auction(self, template_id, amount, auction_id, auction_start, encoded_parameters):
-        item = Item(template_id, amount, encoded_parameters)
+    def _create_auction(self, template_id, amount, auction_id, auction_start, encoded_parameters, chain_id):
+        item = Item(template_id, amount, encoded_parameters, chain_id)
         auction_obj = Auction(item, auction_id)
         self.current_auctions[auction_id] = auction_obj
         auction_obj.start(auction_start)
