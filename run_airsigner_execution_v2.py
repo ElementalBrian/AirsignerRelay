@@ -4,9 +4,10 @@ from defi_infrastructure.api3.boost.auctions.user import Participant
 from defi_infrastructure.api3.boost.auctions.signer import sign_confirmation
 from defi_infrastructure.api3.boost.auctions.http_server_v2 import AuctionHttp2
 from defi_infrastructure.api3.boost.auctions.http_price_check import pricing
-from web3 import Web3, HTTPProvider
+from eth_account import Account
+from web3 import Web3
 from hdwallet import HDWallet
-import datetime, time, os, asyncio, json
+import datetime, time, asyncio, json
 
 
 class AirsignerExecutionV2:
@@ -17,7 +18,6 @@ class AirsignerExecutionV2:
         self.admin_key = "admin"
         self.http_server = AuctionHttp2(self.port, self)
         self.mnemonic = "task evil shock clay polar tackle net cherry sense pulse announce cook"
-        self.web3 = Web3(HTTPProvider(endpoint_uri=os.getenv("mainnet"), request_kwargs={'timeout': 100}))
 
         self.participants = {}
         self.winners = ["placeholder"]
@@ -175,7 +175,7 @@ class AirsignerExecutionV2:
             hdwallet.from_mnemonic(self.mnemonic)
             hdwallet.from_path("m/44'/60'/0'/0/0")
             dump = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
-            account = self.web3.eth.account.from_key(json.loads(dump)["private_key"])
+            account = Account.from_key(json.loads(dump)["private_key"])
             signature = sign_confirmation(account, types, values).signature
             return signature.hex()
         except:
