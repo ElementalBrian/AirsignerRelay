@@ -1,43 +1,34 @@
-from defi_infrastructure.api3.boost.auctions.auction import Auction
-from defi_infrastructure.api3.boost.auctions.item import Item
-from defi_infrastructure.api3.boost.auctions.user import Participant
-from defi_infrastructure.api3.boost.auctions.signer import sign_confirmation
-from defi_infrastructure.api3.boost.auctions.http_server_v2 import AuctionHttp2
-from defi_infrastructure.api3.boost.auctions.http_price_check import pricing
+from auctions.auction import Auction
+from auctions.item import Item
+from auctions.user import Participant
+from provider_spec import ProviderSpec
+from http_server_v2 import AuctionHttp2
+from http_price_check import pricing
+from eth_account.messages import defunct_hash_message
+from threading import Thread, current_thread
 from eth_account import Account
 from web3 import Web3
 from hdwallet import HDWallet
 import datetime, time, asyncio, json
+from eth_abi.codec import ABICodec
+from web3._utils.abi import build_default_registry
 
 
-class AirsignerExecutionV2:
-    def __init__(self):
+class AirsignerExecutionV2(ProviderSpec):
+    def __init__(self, thread):
+        super().__init__()
         self.this = self.__class__.__name__
-        print(f'{self.this}: Starting Airsigner auction execution')
-        self.port = 33666
-        self.admin_key = "admin"
-        self.http_server = AuctionHttp2(self.port, self)
-        self.mnemonic = "task evil shock clay polar tackle net cherry sense pulse announce cook"
+        self.codec = ABICodec(build_default_registry())
 
         self.participants = {}
-        self.winners = ["placeholder"]
-        self.valid_api_keys = ["burak", "midhav", "jacob"]  # read api keys from conf file
-
+        self.winners = {}
         self.current_auctions = {}
         self.ended_auctions = {}
         self.unclaimed_shitlist = {str: []}
-        self.garbage_timer = 60
-        self.garbage_limit = 5
-
-        self.auction_runtime_seconds = 10
-        self.airnode_price_decimals = 8
 
         # TODO replace print statements with logging function
-        '''
-        read a config file to get memnonic, api keys, admin key, monitoring server details/peer list, garbage timer,
-        airnode address and http gateway URL will be in the config file too, also airsigner port number
-        '''
-        self.airnode_address = "0x189Cb0AAf184a01EF2fB50caE55A2100180A42d6"
+        print(f'{self.this}: Starting Airsigner auction execution on thread {thread}')
+
 
     '''
     :param auction_id: The auction ID being checked
@@ -46,8 +37,8 @@ class AirsignerExecutionV2:
     '''
     def claim_winning(self, auction_id, api_key):
         if auction_id not in self.current_auctions.keys():
-            print(f'{self.this}: {auction_id} was not found')
-            return {'failure': f'{auction_id} was not found'}
+            print(f'{self.this}: {auction_id} was not found, most likely it was already claimed by the auction winner')
+            return {'failure': f'{auction_id} was not found, most likely it was already claimed by the auction winner'}
         else:
             auction_obj = self.current_auctions[auction_id]
         if api_key != auction_obj.highest_bid.bidder.api_key:
@@ -58,17 +49,22 @@ class AirsignerExecutionV2:
             print(f'{self.this}: {auction_id} could not be ended, auction has been running for {timestamp - auction_obj.start_time} seconds')
             return {'failure': f'{auction_id} could not be ended, auction has been running for {timestamp - auction_obj.start_time} seconds'}
         template_id = auction_obj.item.name
-        price = int(pricing("ethereum") * 10 ** self.airnode_price_decimals) # auction_obj.item.encoded_parameters will get sent to HTTP signed gateway here
+        if auction_obj.item.beacon_id != self.longer_zeroes:
+            asset = self.valid_beacons_and_endpoints[auction_obj.item.endpoint_id][auction_obj.item.beacon_id]
+        else:
+            asset = self._asset_from_encoded_parameters(auction_obj.item.encoded_parameters)
+        price = int(pricing(asset, auction_obj.start_time, self.http_gateway_url, auction_obj.item.endpoint_id, self.http_gateway_key) * 10 ** self.airnode_price_decimals) # auction_obj.item.encoded_parameters will get sent to HTTP signed gateway here
+        if price is False:
+            quit()
         signature = str(self._get_signed_oracle_update_beacon(price, auction_obj.start_time, template_id, auction_obj.highest_bid.bidder.name))
         self.ended_auctions[auction_id] = {'signature': signature, 'price': price, 'timestamp': auction_obj.start_time, 'beacon_id': template_id, 'user': auction_obj.highest_bid.bidder.name, 'amount': auction_obj.highest_bid.amount}
-        collect_garbage = self.garbage_collector(self.garbage_timer, self.admin_key)
+        collect_garbage = self.garbage_collector(self.auto_garbage_timer, self.admin_key)
         if collect_garbage is not False:
             print(f'garbage collector: {collect_garbage}')
         if auction_id in self.ended_auctions.keys():
-            print(f"{self.this}: 'success': {signature}, 'price': {price}, 'price_decimals': {self.airnode_price_decimals}, 'timestamp': {auction_obj.start_time}, 'beacon_id': {template_id}, 'user': {auction_obj.highest_bid.bidder.name}, 'chain_id': {auction_obj.item.chain_id}, 'amount': {auction_obj.highest_bid.amount}")
+            print(f"{self.this}: 'success': {signature}, 'price': {price}, 'price_decimals': {self.airnode_price_decimals}, 'timestamp': {auction_obj.start_time},  'template_id': {template_id}, 'beacon_id': {auction_obj.item.beacon_id}, 'user': {auction_obj.highest_bid.bidder.name}, 'chain_id': {auction_obj.item.chain_id}, 'amount': {auction_obj.highest_bid.amount}")
             del self.current_auctions[auction_id]
-            self.winners.append(api_key)
-            return {'signature': signature, 'price': str(price), 'price_decimals': str(self.airnode_price_decimals), 'timestamp': str(auction_obj.start_time), 'beacon_id': template_id, 'user': auction_obj.highest_bid.bidder.name, 'chain_id': auction_obj.item.chain_id, 'amount': str(auction_obj.highest_bid.amount), "auction_id": auction_id}
+            return {'signature': signature, 'price': str(price), 'price_decimals': str(self.airnode_price_decimals), 'timestamp': str(auction_obj.start_time), 'template_id': template_id, 'beacon_id': auction_obj.item.beacon_id, 'user': auction_obj.highest_bid.bidder.name, 'chain_id': str(auction_obj.item.chain_id), 'amount': str(auction_obj.highest_bid.amount), "auction_id": auction_id}
 
     '''
     :param encoded_parameters: The Airnode ABI encoded parameters
@@ -76,27 +72,38 @@ class AirsignerExecutionV2:
     :param searcher: The EVM address of the searcher
     :param endpoint_id: The endpoint ID for the data provider
     :param api_key: The user API key
+    :param chain_id: The EVM chain id
+    :param beacon_id: The airnode beacon id
     :return: JSON formatted output with details confirming receipt of the bid or failure reason
     '''
-    def place_bid(self, encoded_parameters, amount, searcher, endpoint_id, api_key, chain_id):
+    def place_bid(self, encoded_parameters, amount, searcher, endpoint_id, api_key, chain_id, beacon_id):
         if not self._validate_and_build_user_object(searcher, api_key):
             print(f'{self.this}: {api_key} is not a valid key')
             return {'failure': f'{api_key} is not a valid key'}
         template_id = Web3.solidityKeccak(['address', 'bytes32', 'bytes'], [self.airnode_address, endpoint_id, encoded_parameters]).hex()
         auction_start = int(time.mktime(datetime.datetime.now().timetuple())) - int(time.mktime(datetime.datetime.now().timetuple())) % self.auction_runtime_seconds
-        auction_id = Web3.solidityKeccak(['uint256', 'bytes32', 'uint256'], [auction_start, template_id, chain_id]).hex()
-        if api_key == self.winners[-1]:
-            print(f'{self.this}: {api_key} won the most recent auction therefore is rate limited for this one')
-            return {'failure': f'{api_key} won the most recent auction therefore is rate limited for this one'}
+        auction_id = Web3.solidityKeccak(['uint256', 'bytes32', 'uint256', 'bytes32'], [auction_start, template_id, chain_id, beacon_id]).hex()
+        subscription_id = Web3.keccak(hexstr=self.codec.encode_abi(['uint256', 'address', 'bytes32', 'string', 'string', 'address', 'address', 'address', 'bytes4'], [chain_id, self.airnode_address, template_id, "", "", self.relayer, self.zeroes, self.relayer, self.fulfillPspBeaconUpdate]).hex()).hex()
+        if self._was_last_winner(api_key, template_id, chain_id) is True:
+            print(f'{self.this}: {api_key} won the most recent auction for template {template_id} at {auction_start - self.auction_runtime_seconds} on chain {chain_id} therefore is rate limited for this one at {auction_start}')
+            return {'failure': f'{api_key} won the most recent auction for template {template_id} at {auction_start - self.auction_runtime_seconds} on chain {chain_id} therefore is rate limited for this one at {auction_start}'}
         if auction_id not in self.current_auctions.keys():
-            auction_obj = self._create_auction(template_id, amount, auction_id, auction_start, encoded_parameters, chain_id)
+            auction_obj = self._create_auction(template_id, amount, auction_id, auction_start, encoded_parameters, chain_id, endpoint_id, subscription_id, beacon_id)
         else:
             auction_obj = self.current_auctions[auction_id]
         user_obj = self.participants[api_key]
         if auction_obj.highest_bid is None or amount > auction_obj.highest_bid.amount:
             user_obj.bid(auction_obj, amount)
-        print(f'{self.this}: {searcher} bid of {amount} received for auction ID {auction_id} that started at {auction_start} and runs for {self.auction_runtime_seconds} seconds at endpoint {endpoint_id}')
-        return {'result': 'received', "auction_start": str(auction_start), 'encoded_parameters': encoded_parameters, 'endpoint_id': endpoint_id, 'searcher': searcher, 'amount': str(amount), "auction_id": auction_id, "chain_id": chain_id}
+            self.winners[auction_id] = api_key
+        print(f'{self.this}: {searcher} bid of {amount} received for auction ID {auction_id} that started at {auction_start} and runs for {self.auction_runtime_seconds} seconds at endpoint {endpoint_id}, template ID {template_id}, beacon ID {beacon_id} ')
+        return {'result': 'received', "auction_start": str(auction_start), 'encoded_parameters': encoded_parameters, 'endpoint_id': endpoint_id, 'searcher': searcher, 'amount': str(amount), "auction_id": auction_id, "chain_id": str(chain_id), 'template_id': template_id, 'beacon_id': beacon_id}
+
+    def _was_last_winner(self, api_key, template_id, chain_id):
+        previous_auction_start = int(time.mktime(datetime.datetime.now().timetuple())) - self.auction_runtime_seconds - int(time.mktime(datetime.datetime.now().timetuple())) % self.auction_runtime_seconds
+        previous_auction_id = Web3.solidityKeccak(['uint256', 'bytes32', 'uint256'], [previous_auction_start, template_id, chain_id]).hex()
+        if previous_auction_id in self.winners.keys() and self.winners[previous_auction_id] == api_key:
+            return True
+        return False
 
     '''
     :param admin_key: The admin API key
@@ -176,18 +183,24 @@ class AirsignerExecutionV2:
             hdwallet.from_path("m/44'/60'/0'/0/0")
             dump = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
             account = Account.from_key(json.loads(dump)["private_key"])
-            signature = sign_confirmation(account, types, values).signature
-            return signature.hex()
+            hash = Web3.solidityKeccak(types, values)
+            msg_hash = defunct_hash_message(hexstr=hash.hex())
+            return Account.signHash(msg_hash, account.privateKey).signature.hex()
         except:
             # print(f'{self.this}: signature failure')
             return "0x_fake_signature_because_for_some_reason_the_signing_doesnt_work_on_my_vm_but_works_everywhere_else"
 
-    def _create_auction(self, template_id, amount, auction_id, auction_start, encoded_parameters, chain_id):
-        item = Item(template_id, amount, encoded_parameters, chain_id)
-        auction_obj = Auction(item, auction_id)
+    def _create_auction(self, template_id, amount, auction_id, auction_start, encoded_parameters, chain_id, endpoint_id, subscription_id, beacon_id=None):
+        item = Item(template_id, amount, encoded_parameters, chain_id, endpoint_id, beacon_id)
+        auction_obj = Auction(item, auction_id, subscription_id)
         self.current_auctions[auction_id] = auction_obj
         auction_obj.start(auction_start)
         return auction_obj
+
+    def _asset_from_encoded_parameters(self, encoded_parameters):
+        asset_hex = encoded_parameters.replace('0x', '')[128:]
+        asset = str(Web3.toText(hexstr=asset_hex)).strip()
+        return asset.rstrip('\x00')
 
     def _validate_and_build_user_object(self, searcher, api_key):
         if api_key not in self.valid_api_keys:
@@ -197,12 +210,35 @@ class AirsignerExecutionV2:
             self.participants[api_key] = participant_obj
         return True
 
+    def _run_webserver(self):
+        self.http_server = AuctionHttp2(self.port, self, current_thread().getName()[-1])
 
-async def _startup():
-    AirsignerExecutionV2()
+
+async def run_monitor_service(execution_obj):
+    print(f'running monitor service on thread: {current_thread().getName()[-1]}')
+    while True:
+        # print("this is where we watch for events written to the chain")
+        # print(execution_obj.get_auctions("admin"))
+        time.sleep(1)
+
+async def start_webserver(execution_obj):
+    execution_obj._run_webserver()
 
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(_startup())
-    loop.run_forever()
+    execution_obj = AirsignerExecutionV2(current_thread().getName())
+
+    def first_thread_tasks():
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(start_webserver(execution_obj))
+        loop.run_forever()
+    t1 = Thread(target=first_thread_tasks)
+    t1.start()
+
+    def second_thread_tasks():
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(run_monitor_service(execution_obj))
+        loop.run_forever()
+    t2 = Thread(target=second_thread_tasks)
+    t2.start()
+

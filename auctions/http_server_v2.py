@@ -4,14 +4,14 @@ import tornado.web
 import socket
 
 class AuctionHttp2:
-    def __init__(self, port, callback) -> None:
+    def __init__(self, port, callback, thread) -> None:
         self.this = self.__class__.__name__
         self.callback = callback
         global http_server
         http_server = self
         global ports
         ports = port
-        print(f'{self.this}: Starting Airsigner webserver on {(socket.gethostbyname(socket.gethostname()))}:{port}')
+        print(f'{self.this}: Starting Airsigner on thread {thread} webserver at {(socket.gethostbyname(socket.gethostname()))}:{port}')
 
         self.app = tornado.web.Application(
             [
@@ -22,6 +22,7 @@ class AuctionHttp2:
                 (r"/win", Win),
                 (r"/ended", Ended),
                 (r"/missed", Missed),
+                (r"/ids", Ids),
                 (r"/bid", Bid)
             ]
         )
@@ -32,8 +33,9 @@ class Splash(tornado.web.RequestHandler, ABC):
         try:
             greeting = f'Welcome to the Airsigner splash page!'
             runtime = f'current auction runtime is {http_server.callback.auction_runtime_seconds} seconds, and presently a single API key can only win at most every other auction (can\'t win 2 in a row) but this limit is temporary'
-            warning = f'current auction timeout is {http_server.callback.garbage_timer} seconds, if more than {http_server.callback.garbage_limit} auctions for your API key go unclaimed during this time, you may be rate limited'
+            warning = f'current auction timeout is {http_server.callback.auto_garbage_timer} seconds, if more than {http_server.callback.rate_limit} auctions for your API key go unclaimed during this time, you may be rate limited'
             bid = f'If you\'d like to place a bid, go here: {(socket.gethostbyname(socket.gethostname()))}:{ports}/bid?key=APIKEY&endpoint=ENDPOINT&amount=AMOUNT&searcher=ADDRESS&chain=CHAINID'
+            ids = f'If you\'d like to see the available endpoint IDs  , go here: {(socket.gethostbyname(socket.gethostname()))}:{ports}/ids'
             body = f'Be sure to add a post body along with your query terms for the airnode ABI encoded paramaters in JSON format like so: '
             params = '{"encodedParameters": "0x3173000000000000000000000000000000000000000000000000000000000000636f696e49640000000000000000000000000000000000000000000000000000657468657265756d000000000000000000000000000000000000000000000000"}'
             bid_response = f'You\'ll get a response like this when you place a bid:'
@@ -50,6 +52,7 @@ class Splash(tornado.web.RequestHandler, ABC):
                 <p>{greeting}</p> 
                 <p>{runtime}</p> 
                 <p>{warning}</p> 
+                <p>{ids}</p> 
                 <p>{bid}</p> 
                 <p>{body}</p> 
                 <p>{params}</p> 
@@ -93,8 +96,9 @@ class Bid(tornado.web.RequestHandler):
             amount = int(self.get_query_argument("amount"))
             searcher = self.get_query_argument("searcher")
             chain_id = int(self.get_query_argument("chain"))
+            beacon_id = self.get_query_argument("beacon", default="0x000000000000000000000000000000000000000000000000000000000000000")
             encoded_parameters = self.get_argument('encodedParameters', 'No data received in post body')
-            response: Dict = http_server.callback.place_bid(encoded_parameters, amount, searcher, endpoint_id, api_key, chain_id)
+            response: Dict = http_server.callback.place_bid(encoded_parameters, amount, searcher, endpoint_id, api_key, chain_id, beacon_id)
             self.write(response)
         except Exception as e:
             self.send_error(400, reason=e)
@@ -143,6 +147,18 @@ class Missed(tornado.web.RequestHandler):
         try:
             api_key = self.get_query_argument("key")
             response: Dict = http_server.callback.get_missed_auctions(api_key)
+            self.write(response)
+        except Exception as e:
+            self.send_error(400, reason=e)
+
+class Ids(tornado.web.RequestHandler):
+    async def get(self):
+        try:
+            endpoints = http_server.callback.valid_beacons_and_endpoints
+            for key, value in endpoints.items():
+                if "0x000000000000000000000000000000000000000000000000000000000000000" in value.keys():
+                    del value["0x000000000000000000000000000000000000000000000000000000000000000"]
+            response: Dict = {"endpoints": endpoints}
             self.write(response)
         except Exception as e:
             self.send_error(400, reason=e)

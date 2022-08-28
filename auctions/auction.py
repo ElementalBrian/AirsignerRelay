@@ -1,10 +1,11 @@
 # Auction class creates auctions and can start and stop them
 
 class Auction:
-    def __init__(self, item, auction_id):
+    def __init__(self, item, auction_id, subscription_id):
         self.this = self.__class__.__name__
         self.id = auction_id
         self.item = item
+        self.subscription_id = subscription_id
         self.is_started = False
         self.has_failed = None
         self.highest_bid = None

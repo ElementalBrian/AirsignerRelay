@@ -1,0 +1,19 @@
+{
+  "config":
+    {
+      "id": 1,
+      "port": 33666,
+      "priceDecimals": 8,
+      "contracts": {
+        "AirnodeAddress": "0x189Cb0AAf184a01EF2fB50caE55A2100180A42d6",
+        "RelayerAddress": "0x2218a813a7E587640132E633A8cce7DBc80B8eB8"
+      },
+      "timers": {
+        "garbageTimer": 60,
+        "auctionTimer": 10
+      },
+      "limits": {
+        "rateLimit": 5
+      }
+    }
+}
