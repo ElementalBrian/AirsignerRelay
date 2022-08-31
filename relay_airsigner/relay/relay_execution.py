@@ -26,6 +26,45 @@ class AirsignerExecutionV2(RelaySpec):
         # TODO replace print statements with logging function
         print(f'{self.this}: Starting Airsigner auction execution on thread {thread}')
 
+    '''
+       :param auction_id: The auction ID being checked
+       :param api_key: The user API key
+       :return: JSON formatted output with the winning auction results or failure reason
+       '''
+
+    def claim(self, api_key, bundle_id):
+        if bundle_id not in self.current_auctions.keys():
+            print(f'{self.this}: {bundle_id} was not found, most likely it was already claimed by the auction winner')
+            return {'failure': f'{bundle_id} was not found, most likely it was already claimed by the auction winner'}
+        else:
+            bundle_obj = self.current_auctions[bundle_id]
+
+        timestamp = int(time.mktime(datetime.datetime.now().timetuple()))
+        if (timestamp - bundle_obj.start_time) < self.auction_runtime_seconds:
+            print(f'{self.this}: {bundle_id} could not be ended, auction has been running for {timestamp - bundle_obj.start_time} seconds')
+            return {'failure': f'{bundle_id} could not be ended, auction has been running for {timestamp - bundle_obj.start_time} seconds'}
+
+        collect_garbage = self.garbage_collector(self.auto_garbage_timer, self.admin_key)
+        if collect_garbage is not False:
+            print(f'garbage collector: {collect_garbage}')
+
+        winner = self.find_winners_for_timeslot_in_bundle_id()
+
+        price = 1100
+        signature = "god damn bloody bugger"
+
+
+        if api_key != winner:
+            print(f'{self.this}: {bundle_id} could not be retrieved, caller {api_key} was not the winner')
+            return {'failure': f'{bundle_id} could not be retrieved, caller {api_key} was not the winner'}
+
+
+
+    def _obj_param_retriever(self, bundle_obj):
+        subscription_ids = []
+        for item in bundle_obj.items:
+            subscription_ids.append(item.subscription_id)
+        return bundle_obj.highest_bid.amount, subscription_ids
 
     def bid_aggregator(self, api_key, bid_parameters):
         params = json.loads(bid_parameters)
@@ -53,7 +92,7 @@ class AirsignerExecutionV2(RelaySpec):
         if bundle_obj is not False:
             user_obj.bid(bundle_obj, total_bid)
             return {"success": bundle_id}
-        return {"failure": bundle_id}
+        return {"failure": "sorry"}
 
     def _create_bundle(self, bundle_id: str, params: dict, auction_start: int):
         items = []
@@ -67,23 +106,6 @@ class AirsignerExecutionV2(RelaySpec):
         bundle_obj = Auction(items, bundle_id, auction_start)
         return bundle_obj
 
-    '''
-    :param admin_key: The admin API key
-    :return: JSON formatted output with list of auction ID's and the associated values at present time or failure reason
-    '''
-    def get_auctions(self, admin_key):
-        if admin_key != self.admin_key:
-            return {'failure': f'key {admin_key} does not have access to this endpoint'}
-        items = []
-        for bundle_id, auction_obj in self.current_auctions.items():
-            high_bid = auction_obj.highest_bid.amount
-            template_id = auction_obj.item.name
-            start_time = auction_obj.start_time
-            high_bidder = auction_obj.highest_bid.bidder.name
-            running = (int(time.mktime(datetime.datetime.now().timetuple())) - start_time) < self.auction_runtime_seconds
-            struct = {"bundle_id": bundle_id, "template_id": template_id, "high_bid": high_bid, "high_bidder": high_bidder, "start_time": start_time, "running": running}
-            items.append(struct)
-        return {'quantity': len(items), 'auctions': tuple(items)}
 
     '''
     :param age: The age of auctions to be purged from memory and added to the shitlist in seconds
@@ -153,6 +175,7 @@ async def run_monitor_service(executor):
     while True:
         # print("this is where we watch for events written to the chain")
         time.sleep(1)
+        quit()
 
 async def start_webserver(executor):
     executor._run_webserver()

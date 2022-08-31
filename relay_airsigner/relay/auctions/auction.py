@@ -6,5 +6,5 @@ class Auction:
         self.bundle_id = bundle_id
         self.items = items
         self.auction_start = auction_start
-
+        self.highest_bid = None
 

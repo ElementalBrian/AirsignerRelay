@@ -7,4 +7,5 @@ class Bid:
         self.bidder = bidder
         self.amount = amount
         self.auction = auction
+        self.auction.highest_bid = self
         print(f'{self.this}: {bidder.api_key} bids {amount} for bundle ID {auction.bundle_id}')

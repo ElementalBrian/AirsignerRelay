@@ -20,8 +20,6 @@ class RelayHttp:
                 (r"/admin", Admin),
                 (r"/purge", Purge),
                 (r"/win", Win),
-                (r"/ended", Ended),
-                (r"/missed", Missed),
                 (r"/ids", Ids),
                 (r"/subs", Subscriptions),
                 (r"/bids", Bid)
@@ -124,25 +122,6 @@ class Purge(tornado.web.RequestHandler):
             admin_key = self.get_query_argument("key")
             age = int(self.get_query_argument("age"))
             response: Dict = http_server.callback.garbage_collector(age, admin_key)
-            self.write(response)
-        except Exception as e:
-            self.send_error(400, reason=e)
-
-class Ended(tornado.web.RequestHandler):
-    async def get(self):
-        try:
-            key = self.get_query_argument("key")
-            auction_id = self.get_query_argument("id")
-            response: Dict = http_server.callback.get_ended_auction_params(auction_id, key)
-            self.write(response)
-        except Exception as e:
-            self.send_error(400, reason=e)
-
-class Missed(tornado.web.RequestHandler):
-    async def get(self):
-        try:
-            api_key = self.get_query_argument("key")
-            response: Dict = http_server.callback.get_missed_auctions(api_key)
             self.write(response)
         except Exception as e:
             self.send_error(400, reason=e)
