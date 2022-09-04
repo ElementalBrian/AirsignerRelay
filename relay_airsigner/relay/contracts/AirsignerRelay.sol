@@ -42,7 +42,8 @@ contract AirsignerRelay is Ownable, ExtendedMulticall {
     /// @param templateId Template ID
     /// @return subscriptionId Subscription ID
     function registerSearcherBeaconUpdateSubscription(address airnode, bytes32 templateId) external returns (bytes32 subscriptionId) {
-        subscriptionId = IDapiServer(dapiServer).registerBeaconUpdateSubscription(airnode, templateId, "0x", address(this), address(this));
+        subscriptionId = IDapiServer(dapiServer)
+            .registerBeaconUpdateSubscription(airnode, templateId, "0x", address(this), address(this));
     }
 
     /// @notice Called by the Searcher to fulfill the Beacon update subscription

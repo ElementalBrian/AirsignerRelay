@@ -1,6 +1,6 @@
 # Auction class creates auctions and can start and stop them
 
-class Bundle:
+class Auction:
     def __init__(self, items, bundle_id, auction_start):
         self.this = self.__class__.__name__
         self.bundle_id = bundle_id

@@ -1,4 +1,4 @@
-from auctions.auction import Bundle
+from auctions.auction import Auction
 from auctions.item import Item
 from auctions.user import Participant
 from http_server import RelayHttp
@@ -29,15 +29,16 @@ class RelayExecution(RelaySpec):
     def claim_winning(self, api_key):
         latest_auction_subscription_ids_by_bundle = self.get_latest_auction_subscription_ids_by_bundle()
         profit_by_bundle = {}
-        for bundle_id in latest_auction_subscription_ids_by_bundle.values():
+        for bundle_id in latest_auction_subscription_ids_by_bundle.keys():
             bundle_obj = self.current_auction_objs[bundle_id]
             profit_by_bundle[bundle_id] = bundle_obj.highest_bid.amount
 
-        print("latest_auction_subscription_ids_by_bundle", latest_auction_subscription_ids_by_bundle)
-        print("profit_by_bundle", profit_by_bundle)
+        winners = []
+        for bundle_id, subscription_ids in latest_auction_subscription_ids_by_bundle.items():
+            if winners == []:
+                winners.append(bundle_id)
 
-
-
+        print(winners)
 
         return {"fail": None}
 
@@ -54,7 +55,6 @@ class RelayExecution(RelaySpec):
                 return winning_bundles_by_apikey[api_key]
 
 
-
         # # signature, price = "god damn bloody bugger", 1100  ## get these from airsigner
         # # return subsc
         # # # return "list of bundles this user won for the most recent auction in self.bundles_by_auction_time"
@@ -67,8 +67,8 @@ class RelayExecution(RelaySpec):
             bundle_obj = self.current_auction_objs[bundle_id]
             for item in bundle_obj.items:
                 subscription_ids.append(item.subscription_id)
-            auctions[tuple(subscription_ids)] = bundle_id
-        return {k: v for k, v in sorted(auctions.items(), key=lambda y: y[1])}
+            auctions[bundle_id] = subscription_ids
+        return auctions
 
     def find_winners_for_timeslot_in_bundle_id(self, bundle_obj):
         return True
@@ -123,7 +123,7 @@ class RelayExecution(RelaySpec):
             self.bundles_by_auction_time[auction_start].append(bundle_id)
         else:
             self.bundles_by_auction_time[auction_start] = [bundle_id]
-        bundle_obj = Bundle(items, bundle_id, auction_start)
+        bundle_obj = Auction(items, bundle_id, auction_start)
         self.current_auction_objs[bundle_id] = bundle_obj
         return bundle_obj
 
