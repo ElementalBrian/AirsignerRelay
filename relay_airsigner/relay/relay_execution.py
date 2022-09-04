@@ -1,4 +1,4 @@
-from auctions.auction import Auction
+from auctions.auction import Bundle
 from auctions.item import Item
 from auctions.user import Participant
 from http_server import RelayHttp
@@ -10,55 +10,68 @@ from web3 import Web3
 import datetime, time, asyncio, json
 
 
-class AirsignerExecutionV2(RelaySpec):
+class RelayExecution(RelaySpec):
     def __init__(self, thread):
         super().__init__()
         self.this = self.__class__.__name__
         self.codec = ABICodec(build_default_registry())
 
-        self.last_auctions = {0: []}
+        self.bundles_by_auction_time = {int(time.mktime(datetime.datetime.now().timetuple())): []}
         self.participants = {}
-        self.winners = {}
-        self.current_auctions = {}
-        self.ended_auctions = {}
+        self.current_auction_objs = {}
         self.unclaimed_shitlist = {str: []}
 
         # TODO replace print statements with logging function
-        print(f'{self.this}: Starting Airsigner auction execution on thread {thread}')
-
-    '''
-       :param auction_id: The auction ID being checked
-       :param api_key: The user API key
-       :return: JSON formatted output with the winning auction results or failure reason
-       '''
-
-    def claim(self, api_key, bundle_id):
-        if bundle_id not in self.current_auctions.keys():
-            print(f'{self.this}: {bundle_id} was not found, most likely it was already claimed by the auction winner')
-            return {'failure': f'{bundle_id} was not found, most likely it was already claimed by the auction winner'}
-        else:
-            bundle_obj = self.current_auctions[bundle_id]
-
-        timestamp = int(time.mktime(datetime.datetime.now().timetuple()))
-        if (timestamp - bundle_obj.start_time) < self.auction_runtime_seconds:
-            print(f'{self.this}: {bundle_id} could not be ended, auction has been running for {timestamp - bundle_obj.start_time} seconds')
-            return {'failure': f'{bundle_id} could not be ended, auction has been running for {timestamp - bundle_obj.start_time} seconds'}
-
-        collect_garbage = self.garbage_collector(self.auto_garbage_timer, self.admin_key)
-        if collect_garbage is not False:
-            print(f'garbage collector: {collect_garbage}')
-
-        winner = self.find_winners_for_timeslot_in_bundle_id()
-
-        price = 1100
-        signature = "god damn bloody bugger"
+        print(f'{self.this}: Starting Relay auction execution on thread {thread}')
 
 
-        if api_key != winner:
-            print(f'{self.this}: {bundle_id} could not be retrieved, caller {api_key} was not the winner')
-            return {'failure': f'{bundle_id} could not be retrieved, caller {api_key} was not the winner'}
+
+    def claim_winning(self, api_key):
+        latest_auction_subscription_ids_by_bundle = self.get_latest_auction_subscription_ids_by_bundle()
+        profit_by_bundle = {}
+        for bundle_id in latest_auction_subscription_ids_by_bundle.values():
+            bundle_obj = self.current_auction_objs[bundle_id]
+            profit_by_bundle[bundle_id] = bundle_obj.highest_bid.amount
+
+        print("latest_auction_subscription_ids_by_bundle", latest_auction_subscription_ids_by_bundle)
+        print("profit_by_bundle", profit_by_bundle)
 
 
+
+
+        return {"fail": None}
+
+
+    def winning_bundles_for_key(self, api_key, winners):
+            winning_bundles_by_apikey = {}
+            for bundle_id in winners.keys():
+                winning_api_key = self.current_auction_objs[bundle_id].highest_bid.bidder
+                if winning_api_key not in winning_bundles_by_apikey.keys():
+                    winning_bundles_by_apikey[winning_api_key] = [bundle_id]
+                else:
+                    winning_bundles_by_apikey[winning_api_key].append(bundle_id)
+            if api_key in winning_bundles_by_apikey.keys():
+                return winning_bundles_by_apikey[api_key]
+
+
+
+        # # signature, price = "god damn bloody bugger", 1100  ## get these from airsigner
+        # # return subsc
+        # # # return "list of bundles this user won for the most recent auction in self.bundles_by_auction_time"
+
+    def get_latest_auction_subscription_ids_by_bundle(self):
+        auctions = {}
+        latest_start_time = max(self.bundles_by_auction_time.keys())
+        for bundle_id in self.bundles_by_auction_time[latest_start_time]:
+            subscription_ids = []
+            bundle_obj = self.current_auction_objs[bundle_id]
+            for item in bundle_obj.items:
+                subscription_ids.append(item.subscription_id)
+            auctions[tuple(subscription_ids)] = bundle_id
+        return {k: v for k, v in sorted(auctions.items(), key=lambda y: y[1])}
+
+    def find_winners_for_timeslot_in_bundle_id(self, bundle_obj):
+        return True
 
     def _obj_param_retriever(self, bundle_obj):
         subscription_ids = []
@@ -69,30 +82,33 @@ class AirsignerExecutionV2(RelaySpec):
     def bid_aggregator(self, api_key, bid_parameters):
         params = json.loads(bid_parameters)
         bid_params = params["bid_parameters"]
+        if len(bid_params["subscription_ids"]) != len(set(bid_params["subscription_ids"])):
+            return {'duplicates': f'there is a duplicate in the list of subscription IDs provided: {bid_params["subscription_ids"]}'}
+        if len({len(i) for i in [bid_params["airnodes"],bid_params["searchers"],bid_params["amounts"],bid_params["endpoint_ids"],bid_params["chain_ids"],bid_params["subscription_ids"],bid_params["encoded_parameters"]]}) != 1:
+            return {'disproportionate': f'bid parameter items are not of the same length'}
         if not self._validate_and_build_user_object(api_key):
-            print(f'{self.this}: {api_key} is not a valid key')
-            return {'failure': f'{api_key} is not a valid key'}
+            return {'unauthorized': f'{api_key} is not a valid key'}
         auction_start = int(time.mktime(datetime.datetime.now().timetuple())) - int(time.mktime(datetime.datetime.now().timetuple())) % self.auction_runtime_seconds
-        if max(self.last_auctions, key=self.last_auctions.get) >= auction_start - self.auction_runtime_seconds:
-            print(f'{self.this}: last auction was at {max(self.last_auctions, key=self.last_auctions.get)} therefore is rate limited for this one at {auction_start}')
-            return {'failure': f'last auction was at {max(self.last_auctions, key=self.last_auctions.get)} therefore is rate limited for this one at {auction_start}'}
+        if max(self.bundles_by_auction_time.keys()) == auction_start - self.auction_runtime_seconds:
+            return {'waiting': f'The auction started at {max(self.bundles_by_auction_time.keys())} is over and currently in the execution phase. Next auction starts at {auction_start + self.auction_runtime_seconds}'}
         user_obj = self.participants[api_key]
-        for subscription_id in bid_params["subscription_ids"]:
-            if subscription_id not in self.subscription_ids:
-                print(f'{self.this}: {subscription_id} is not a valid subscription_id')
-                return {'failure': f'{subscription_id} is not a valid subscription_id'}
-        total_bid = sum(map(int, bid_params["amounts"]))
-        bundle_id = Web3.solidityKeccak(['bytes32']*len(bid_params["subscription_ids"]) + ['string', 'uint256', 'uint256'], bid_params["subscription_ids"] + [api_key, auction_start, total_bid]).hex()
-        self.current_auctions = {}
-        if bundle_id not in self.current_auctions.keys():
+        avg_bid_per_sub = int(sum(map(int, bid_params["amounts"])) / len(bid_params["amounts"]))
+        bundle_id = Web3.solidityKeccak(['bytes32']*len(bid_params["subscription_ids"]) + ['string', 'uint256'], bid_params["subscription_ids"] + [api_key, auction_start]).hex()
+        if bundle_id not in self.current_auction_objs.keys():
             bundle_obj = self._create_bundle(bundle_id, bid_params, auction_start)
-            self.current_auctions[bundle_id] = bundle_obj
         else:
-            bundle_obj = self.current_auctions[bundle_id]
+            bundle_obj = self.current_auction_objs[bundle_id]
+        if bundle_id in self.current_auction_objs.keys() and avg_bid_per_sub <= 0:
+            del self.current_auction_objs[bundle_id]
+            self.bundles_by_auction_time[auction_start] = list(filter(lambda a: a != bundle_id, self.bundles_by_auction_time[auction_start]))
+            print(f'{int(time.mktime(datetime.datetime.now().timetuple()))} {self.this}: {api_key} removed bid for bundle ID: {bundle_id}')
+            return {'retracted': f'bid removed for bundle ID: {bundle_id}'}
         if bundle_obj is not False:
-            user_obj.bid(bundle_obj, total_bid)
-            return {"success": bundle_id}
-        return {"failure": "sorry"}
+            if user_obj.bid(bundle_obj, avg_bid_per_sub) is True:
+                return {"success": bundle_id, "subscription_ids": bid_params["subscription_ids"]}
+            else:
+                return {"redundant": "only 2 bids per auction can be made"}
+        return {"invalid": f'a subscription ID in {bid_params["subscription_ids"]} weren\'t valid or weren\'t whitelisted therefore no bundle was created'}
 
     def _create_bundle(self, bundle_id: str, params: dict, auction_start: int):
         items = []
@@ -100,53 +116,16 @@ class AirsignerExecutionV2(RelaySpec):
             template_id = Web3.solidityKeccak(['address', 'bytes32', 'bytes'], [params["airnodes"][i], params["endpoint_ids"][i], params["encoded_parameters"][i]["encodedParameters"]]).hex()
             item = Item(template_id, params["encoded_parameters"][i], params["chain_ids"][i], params["endpoint_ids"][i], params["subscription_ids"][i])
             subscription_id = Web3.keccak(hexstr=self.codec.encode_abi(['uint256', 'address', 'bytes32', 'string', 'string', 'address', 'address', 'address', 'bytes4'], [params["chain_ids"][i], params["airnodes"][i], template_id, "", "", self.relayer, self.zeroes, self.relayer, self.fulfillPspBeaconUpdate]).hex()).hex()
-            if subscription_id.lower() not in [x.lower() for x in params["subscription_ids"]]:
+            if subscription_id.lower() not in [x.lower() for x in params["subscription_ids"]] or subscription_id.lower() not in [x.lower() for x in self.subscription_ids]:
                 return False
             items.append(item)
-        bundle_obj = Auction(items, bundle_id, auction_start)
+        if auction_start in self.bundles_by_auction_time.keys():
+            self.bundles_by_auction_time[auction_start].append(bundle_id)
+        else:
+            self.bundles_by_auction_time[auction_start] = [bundle_id]
+        bundle_obj = Bundle(items, bundle_id, auction_start)
+        self.current_auction_objs[bundle_id] = bundle_obj
         return bundle_obj
-
-
-    '''
-    :param age: The age of auctions to be purged from memory and added to the shitlist in seconds
-    :param admin_key: The admin API key
-    :return: JSON formatted output with the number of auctions purged from memory or failure reason
-    '''
-    def garbage_collector(self, age, admin_key):
-        quantity = len(self.current_auctions)
-        if admin_key != self.admin_key:
-            return {'failure': f'key {admin_key} does not have access to this endpoint'}
-        timestamp = int(time.mktime(datetime.datetime.now().timetuple()))
-        items = []
-        for bundle_id, value in self.current_auctions.items():
-            if (timestamp - value.start_time) > age:
-                items.append(bundle_id)
-        if len(items) > 0:
-            for bundle_id in items:
-                self.unclaimed_shitlist[self.current_auctions[bundle_id].highest_bid.bidder.api_key] = bundle_id
-                del self.current_auctions[bundle_id]
-            return {'removed': quantity - len(self.current_auctions), "age": age}
-        else:
-            return False
-
-    '''
-    :param bundle_id: The auction id being checked
-    :param api_key: The user API key
-    :return: JSON formatted output with the parameters of the completed auction if available
-    '''
-    def get_ended_auction_params(self, bundle_id, api_key):
-        if bundle_id not in self.current_auctions.keys():
-            print(f'{self.this}: {bundle_id} was not found')
-            return {'failure': f'{bundle_id} was not found'}
-        else:
-            auction_obj = self.current_auctions[bundle_id]
-        if api_key != auction_obj.highest_bid.bidder.api_key:
-            print(f'{self.this}: {bundle_id} could not be retrieved, caller {api_key} was not the winner')
-            return {'failure': f'{bundle_id} could not be retrieved, caller {api_key} was not the winner'}
-        try:
-            return {'params': self.ended_auctions[bundle_id]}
-        except:
-            return {'failure': f"could not retrieve values for completed auction {bundle_id}"}
 
     '''
     :param api_key: The user API key
@@ -169,20 +148,36 @@ class AirsignerExecutionV2(RelaySpec):
     def _run_webserver(self):
         self.http_server = RelayHttp(self.http_port, self, current_thread().getName()[-1])
 
-
-async def run_monitor_service(executor):
-    print(f'running monitor service on thread: {current_thread().getName()[-1]}')
-    while True:
-        # print("this is where we watch for events written to the chain")
-        time.sleep(1)
+    def kill(self):
         quit()
 
+
+async def run_monitor_service(executor, web3):
+    print(f'running event monitor service on thread: {current_thread().getName()[-1]}')
+    while True:
+        latest_auction = max(executor.bundles_by_auction_time.keys())
+        timestamp = int(time.mktime(datetime.datetime.now().timetuple()))
+        if (timestamp - timestamp % executor.auction_runtime_seconds) >= latest_auction + executor.auction_runtime_seconds or timestamp == (latest_auction + ((executor.auction_runtime_seconds)*2) - 1):
+            print(f'execution phase for auction started at {latest_auction} will be completed at {latest_auction + (executor.auction_runtime_seconds)*2}')
+            contract = executor.load_contract(web3=web3, abi=executor.dapi_server_abi, address=executor.dapi_server_address)
+            events = list(executor.fetch_events(contract.events.UpdatedBeaconWithSignedData, from_block=web3.eth.blockNumber - 100))
+            if events:
+                for item in events:
+                    beacon_id = item["args"]["beaconId"].hex()
+                    block_time = item["args"]["timestamp"]
+                    block = item["blockNumber"]
+                    print(f'{timestamp} EVENT FOUND FOR BEACON: 0x{beacon_id}')
+            else:
+                print(f"{timestamp} NO EVENTS FOUND: {events}")
+        time.sleep(executor.auction_runtime_seconds/4)
+
 async def start_webserver(executor):
+    time.sleep(executor.auction_runtime_seconds)
     executor._run_webserver()
 
 
 if __name__ == "__main__":
-    executor = AirsignerExecutionV2(current_thread().getName())
+    executor = RelayExecution(current_thread().getName())
     def first_thread_tasks():
         loop = asyncio.new_event_loop()
         loop.run_until_complete(start_webserver(executor))
@@ -192,7 +187,7 @@ if __name__ == "__main__":
 
     def second_thread_tasks():
         loop = asyncio.new_event_loop()
-        loop.run_until_complete(run_monitor_service(executor))
+        loop.run_until_complete(run_monitor_service(executor, executor.web3s[137][1]))
         loop.run_forever()
     t2 = Thread(target=second_thread_tasks)
     t2.start()

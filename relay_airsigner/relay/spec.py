@@ -1,6 +1,8 @@
 from dotenv import load_dotenv
 import json, os
 from web3 import Web3
+from web3._utils.events import get_event_data
+from web3._utils.filters import construct_event_filter_params
 
 
 class RelaySpec:
@@ -9,20 +11,22 @@ class RelaySpec:
         load_dotenv("config/secrets.env")
 
         self.config = self.read_config()
-        # self.web3s = self.read_web3s()
+        self.web3s = self.read_web3s() # commented out to save time on startup during dev
 
         self.valid_api_keys = self.read_api_keys()
         self.valid_beacons_and_endpoints, self.subscription_ids = self.read_beacons_and_subscriptions()
 
+        self.dapi_server_address = "0xd7CA5BD7a45985D271F216Cb1CAD82348464f6d5"
+        self.dapi_server_abi = json.load(open('/home/ice/Projects/defi_infrastructure/api3/relay_airsigner/relay/contracts/DapiServer.json', 'r'))
+
         self.http_port = self.config["port"]
-        self.auto_garbage_timer = self.config["timers"]["garbageTimer"]
         self.auction_runtime_seconds = self.config["timers"]["auctionTimer"]
-        self.rate_limit = self.config["limits"]["rateLimit"]
 
         self.admin_key = os.getenv("ADMIN_API_KEY")
         self.zeroes = "0x0000000000000000000000000000000000000000"
         self.longer_zeroes = "0x000000000000000000000000000000000000000000000000000000000000000"
         self.relayer = self.config["contracts"]["RelayerAddress"]
+        self.relayer_abi = json.load(open('/home/ice/Projects/defi_infrastructure/api3/relay_airsigner/relay/contracts/AirsignerRelay.json', 'r'))
         self.fulfillPspBeaconUpdate = "0x4a00c629"
 
 
@@ -75,3 +79,18 @@ class RelaySpec:
         asset_hex = encoded_parameters.replace('0x', '')[128:]
         asset = str(Web3.toText(hexstr=asset_hex)).strip()
         return asset.rstrip('\x00')
+
+    def load_contract(self, address, abi, web3):
+        address = Web3.toChecksumAddress(address)
+        return web3.eth.contract(address=address, abi=abi)
+
+    def fetch_events(self, event, from_block=None, address=None, topics=None):
+        abi = event._get_event_abi()
+        abi_codec = event.web3.codec
+        argument_filters = dict()
+        _filters = dict(**argument_filters)
+        data_filter_set, event_filter_params = construct_event_filter_params(abi, abi_codec, contract_address=event.address, argument_filters=_filters, fromBlock=from_block, toBlock="latest", address=address, topics=topics)
+        logs = event.web3.eth.getLogs(event_filter_params)
+        for entry in logs:
+            data = get_event_data(abi_codec, abi, entry)
+            yield data

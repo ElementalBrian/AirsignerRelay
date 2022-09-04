@@ -7,5 +7,5 @@ class Item:
         self.encoded_parameters = encoded_parameters
         self.chain_id = chain_id
         self.endpoint_id = endpoint_id
-        self.subscription_id = subscription_id  # if beacon_id is None then the request is for RRP
+        self.subscription_id = subscription_id
 

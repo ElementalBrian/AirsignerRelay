@@ -11,7 +11,7 @@ class RelayHttp:
         http_server = self
         global ports
         ports = port
-        print(f'{self.this}: Starting Airsigner on thread {thread} webserver at {(socket.gethostbyname(socket.gethostname()))}:{port}')
+        print(f'{self.this}: Starting Relay HTTP webserver at {(socket.gethostbyname(socket.gethostname()))}:{port} on thread {thread} ')
 
         self.app = tornado.web.Application(
             [
@@ -19,7 +19,7 @@ class RelayHttp:
                 (r"/running", Running),
                 (r"/admin", Admin),
                 (r"/purge", Purge),
-                (r"/win", Win),
+                (r"/claim", Claim),
                 (r"/ids", Ids),
                 (r"/subs", Subscriptions),
                 (r"/bids", Bid)
@@ -32,7 +32,6 @@ class Splash(tornado.web.RequestHandler, ABC):
         try:
             greeting = f'Welcome to the Airsigner splash page!'
             runtime = f'current auction runtime is {http_server.callback.auction_runtime_seconds} seconds, and presently a single API key can only win at most every other auction (can\'t win 2 in a row) but this limit is temporary'
-            warning = f'current auction timeout is {http_server.callback.auto_garbage_timer} seconds, if more than {http_server.callback.rate_limit} auctions for your API key go unclaimed during this time, you may be rate limited'
             bid = f'If you\'d like to place a bid, go here: {(socket.gethostbyname(socket.gethostname()))}:{ports}/bid?key=APIKEY&endpoint=ENDPOINT&amount=AMOUNT&searcher=ADDRESS&chain=CHAINID'
             ids = f'If you\'d like to see the available endpoint IDs  , go here: {(socket.gethostbyname(socket.gethostname()))}:{ports}/ids'
             body = f'Be sure to add a post body along with your query terms for the airnode ABI encoded paramaters in JSON format like so: '
@@ -50,7 +49,6 @@ class Splash(tornado.web.RequestHandler, ABC):
                 <body> 
                 <p>{greeting}</p> 
                 <p>{runtime}</p> 
-                <p>{warning}</p> 
                 <p>{ids}</p> 
                 <p>{bid}</p> 
                 <p>{body}</p> 
@@ -97,12 +95,11 @@ class Bid(tornado.web.RequestHandler):
         except Exception as e:
             self.send_error(400, reason=e)
 
-class Win(tornado.web.RequestHandler):
+class Claim(tornado.web.RequestHandler):
     async def get(self):
         try:
             api_key = self.get_query_argument("key")
-            auction_id = self.get_query_argument("auction")
-            response: Dict = http_server.callback.claim_winning(auction_id, api_key)
+            response: Dict = http_server.callback.claim_winning(api_key)
             self.write(response)
         except Exception as e:
             self.send_error(400, reason=e)
