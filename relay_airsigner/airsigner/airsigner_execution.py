@@ -27,12 +27,17 @@ class AirsignerExecution:
         print(f'{self.this}: Starting Airsigner Execution')
 
 
-    def signed_oracle_update(self, relay_key, auction_time, airnode_time, beacon_id, endpoint_id, searcher, encoded_parameters):
+    def signed_oracle_update(self, relay_key, auction_time, beacon_id, endpoint_id, searcher, encoded_parameters):
         if relay_key != self.relay_key:
             print(f'{self.this}: signature could not be retrieved, {relay_key} is not the relay key on file for this airsigner')
             return {'failure': f'signature could not be retrieved, {relay_key} is not the relay key on file for this airsigner'}
-        asset = self._asset_from_encoded_parameters(encoded_parameters)
-        price = int(pricing(asset, self.http_gateway_url, endpoint_id, self.http_gateway_key) * 10 ** self.airnode_price_decimals)
+        asset = self._asset_from_encoded_parameters(encoded_parameters["encodedParameters"])
+        if asset == "":
+            print(f"no asset found for: {asset} of string length: {len(asset)}")
+            return {"failure": f"no asset found for: {asset} of string length: {len(asset)}"}
+        airnode_response = pricing(asset, self.http_gateway_url, endpoint_id, self.http_gateway_key)
+        price, airnode_time = airnode_response
+        price = int(price * 10 ** self.airnode_price_decimals)
         hdwallet: HDWallet = HDWallet(symbol="ETH", use_default_path=False)
         hdwallet.from_mnemonic(self.mnemonic)
         hdwallet.from_path("m/44'/60'/0'/0/0")
@@ -41,8 +46,8 @@ class AirsignerExecution:
         ## this may not be 100% right, waiting for details on the differing signatures, might not fit both into a single _hash_and_sign()
         dapi_signature = self._hash_and_sign(account, price, airnode_time, beacon_id, searcher)
         relayer_signature = self._hash_and_sign(account, price, auction_time, beacon_id, searcher)
-
-        return {'dapi_signature': dapi_signature, "relayer_signature": relayer_signature,  'price': str(price), 'price_decimals': str(self.airnode_price_decimals), 'auction_time': str(auction_time), 'airnode_time': str(airnode_time), 'endpoint_id': endpoint_id, 'beacon_id': beacon_id, 'searcher': searcher}
+        print(f"asset: {asset} price: {price} at: {airnode_time} signatures: {dapi_signature} & {relayer_signature}")
+        return {'asset': asset, 'dapi_signature': dapi_signature, "relayer_signature": relayer_signature,  'price': str(price), 'price_decimals': str(self.airnode_price_decimals), 'auction_time': str(auction_time), 'airnode_time': str(airnode_time), 'endpoint_id': endpoint_id, 'beacon_id': beacon_id, 'searcher': searcher}
 
     def _hash_and_sign(self, account, price, time, beacon_id, searcher):
         types = ['uint256', 'uint256', 'bytes32', 'address']

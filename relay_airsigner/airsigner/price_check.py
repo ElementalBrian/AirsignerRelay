@@ -1,4 +1,4 @@
-import requests, json
+import requests, json, time, datetime
 
 def pricing(asset, url, endpoint_id, api_key):
     myobj = {'x-api-key': api_key}
@@ -6,14 +6,14 @@ def pricing(asset, url, endpoint_id, api_key):
     response = requests.post(url + endpoint_id, headers=myobj, data=mydata)
     data = json.loads(response.text)
     try:
-        return data["rawValue"]["market_data"]["current_price"]['usd']
+        return data["rawValue"]["market_data"]["current_price"]['usd'], int(time.mktime(datetime.datetime.now().timetuple()))
     except Exception as e:
         print(f'{e}: {data}')
         return False
 
 
 if __name__ == "__main__":
-    ifile = open("../relay/config/beacons_endpoints.json", "r")
+    ifile = open("../relay/config/beacons_subscriptions.json", "r")
     config = ifile.read()
     ifile.close()
     data = json.loads(config)["endpoints"]
@@ -25,7 +25,6 @@ if __name__ == "__main__":
         beacons_and_endpoints[endpoint["endpoint_id"]] = beacons
     for endpoint_id, beacons in beacons_and_endpoints.items():
         for beacon, asset in beacons.items():
-            timestamp = 11111111111
             url = "https://vnci1lns59.execute-api.us-east-1.amazonaws.com/v1/"
             endpoint_id = "0xf10f067e716dd8b9c91b818e3a933b880ecb3929c04a6cd234c171aa27c6eefe"
             api_key = "_diarrhea_out_the_dick_diarrhea_out_the_dick_"

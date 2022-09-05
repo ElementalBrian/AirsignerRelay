@@ -23,6 +23,7 @@ class RelaySpec:
         self.auction_runtime_seconds = self.config["timers"]["auctionTimer"]
 
         self.admin_key = os.getenv("ADMIN_API_KEY")
+        self.signer_url = os.getenv("SIGNER_URL")
         self.zeroes = "0x0000000000000000000000000000000000000000"
         self.longer_zeroes = "0x000000000000000000000000000000000000000000000000000000000000000"
         self.relayer = self.config["contracts"]["RelayerAddress"]

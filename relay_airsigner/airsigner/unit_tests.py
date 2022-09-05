@@ -2,8 +2,8 @@ import requests, json, random, secrets, warnings, time, datetime
 from web3 import Web3
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-URL = "http://192.168.1.93:33666/" # put yur own IP here m8
-URL = "http://192.168.1.84:33666/" # put yur own IP here m8
+URL = "http://192.168.1.93:33667/" # put yur own IP here m8
+# URL = "http://192.168.1.84:33667/" # put yur own IP here m8
 
 open_auctions = []
 JACOB = "0x9dD2e5271c3F53B21876b579571d5Eb865650Fe9"
@@ -21,7 +21,7 @@ def get_random_user():
 
 def sign(relay_key, endpoint_id, timestamp, searcher, beacon_id):
     endpoint = URL + "sign"
-    payload = {"key": relay_key, "endpoint": endpoint_id, "timestamp": timestamp, "searcher": searcher, "beacon": beacon_id}
+    payload = {"key": relay_key, "endpoint": endpoint_id, "auction_time": timestamp, "searcher": searcher, "beacon": beacon_id}
     encoded_parameters = '{"encodedParameters": "0x3173000000000000000000000000000000000000000000000000000000000000636f696e49640000000000000000000000000000000000000000000000000000657468657265756d000000000000000000000000000000000000000000000000"}'
     data = json.loads(encoded_parameters)
     r = requests.post(endpoint, params=payload, data=data)

@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import Dict
 import tornado.web
-import socket
+import socket, json
 
 class AirsignerHttp:
     def __init__(self, port, callback) -> None:
@@ -16,7 +16,7 @@ class AirsignerHttp:
         self.app = tornado.web.Application(
             [
                 (r"/", Splash),
-                (r"/sign", Signer)
+                (r"/sign", Sign)
             ]
         )
         self.app.listen(port)
@@ -36,16 +36,18 @@ class Splash(tornado.web.RequestHandler, ABC):
         except Exception as e:
             self.send_error(400, reason=e)
 
-class Signer(tornado.web.RequestHandler):
+class Sign(tornado.web.RequestHandler):
     async def post(self):
         try:
             relay_key = self.get_query_argument("key")
             endpoint_id = self.get_query_argument("endpoint")
-            timestamp = int(self.get_query_argument("timestamp"))
+            auction_time = int(self.get_query_argument("auction_time"))
+            # airnode_time = int(self.get_query_argument("airnode_time"))
             searcher = self.get_query_argument("searcher")
             beacon_id = self.get_query_argument("beacon", default="0x000000000000000000000000000000000000000000000000000000000000000")
-            encoded_parameters = self.get_argument('encodedParameters', 'No data received in post body')
-            response: Dict = http_server.callback.signed_oracle_update(relay_key, timestamp, beacon_id, endpoint_id, searcher, encoded_parameters)
+            encoded_parameters = json.loads(self.request.body)
+            response: Dict = http_server.callback.signed_oracle_update(relay_key, auction_time, beacon_id, endpoint_id, searcher, encoded_parameters)
             self.write(response)
         except Exception as e:
+            print(e)
             self.send_error(400, reason=e)

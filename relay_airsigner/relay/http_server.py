@@ -99,7 +99,7 @@ class Claim(tornado.web.RequestHandler):
     async def get(self):
         try:
             api_key = self.get_query_argument("key")
-            response: Dict = http_server.callback.claim_winning(api_key)
+            response: Dict = http_server.callback.claim(api_key)
             self.write(response)
         except Exception as e:
             self.send_error(400, reason=e)

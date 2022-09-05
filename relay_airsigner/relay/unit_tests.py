@@ -86,7 +86,7 @@ def get_user_by_hostname():
     }
     return options[hostname], users[options[hostname]]
 
-def place_bid(key, airnodes: List, searchers: List, amounts: List, endpoint_ids: List, assets: List, chain_ids: List, subscription_ids: List):
+def place_bid(key, airnodes: List, searchers: List, amounts: List, endpoint_ids: List, assets: List, chain_ids: List, subscription_ids: List, beacons: List):
     try:
         endpoint = URL + "bids"
         payload = {"key": key}
@@ -95,7 +95,7 @@ def place_bid(key, airnodes: List, searchers: List, amounts: List, endpoint_ids:
             parameter = str(Web3.toHex(text=asset)).replace("0x", "").ljust(64, "0")
             encoded_parameter = {"encodedParameters": "0x3173000000000000000000000000000000000000000000000000000000000000636f696e49640000000000000000000000000000000000000000000000000000" + parameter}
             encoded_parameters.append(encoded_parameter)
-        bid_parameters = {"bid_parameters": {"airnodes": airnodes, "searchers": searchers, "amounts": amounts, "endpoint_ids": endpoint_ids, "chain_ids": chain_ids, "subscription_ids": subscription_ids, "encoded_parameters": encoded_parameters}}
+        bid_parameters = {"bid_parameters": {"airnodes": airnodes, "beacons": beacons, "searchers": searchers, "amounts": amounts, "endpoint_ids": endpoint_ids, "chain_ids": chain_ids, "subscription_ids": subscription_ids, "encoded_parameters": encoded_parameters}}
         header = {"Content-Type": "application/json"}
         r = requests.post(endpoint, headers=header, params=payload, json=json.dumps(bid_parameters))
         if r.status_code == 200:
@@ -110,7 +110,7 @@ def place_bid(key, airnodes: List, searchers: List, amounts: List, endpoint_ids:
 def run_once():
     chain_id = 1
     beacons_and_endpoints = get_endpoints_from_web()
-    airnodes, addresses, amounts, endpoint_ids, assets, chain_ids, subscription_ids = [], [], [], [], [], [], []
+    airnodes, addresses, amounts, endpoint_ids, assets, chain_ids, subscription_ids, beacon_ids = [], [], [], [], [], [], [], []
     key = None
 
     for i in range((int(time.mktime(datetime.datetime.now().timetuple())) % 2), 3):
@@ -136,11 +136,12 @@ def run_once():
         assets.append(asset)
         chain_ids.append(chain_id)
         subscription_ids.append(subscription_id)
+    beacon_ids = list(beacon_ids.keys())[0:len(airnodes)]
 
-    auction_details = place_bid(key, airnodes, addresses, amounts, endpoint_ids, assets, chain_ids, subscription_ids)
+    auction_details = place_bid(key, airnodes, addresses, amounts, endpoint_ids, assets, chain_ids, subscription_ids, beacon_ids)
     print(auction_details)
     if (int(time.mktime(datetime.datetime.now().timetuple())) % 7) == 0:  # send the occaisonal bid retraction
-        auction_details = place_bid(key, airnodes, addresses, [0 for amount in amounts], endpoint_ids, assets, chain_ids, subscription_ids)
+        auction_details = place_bid(key, airnodes, addresses, [0 for amount in amounts], endpoint_ids, assets, chain_ids, subscription_ids, beacon_ids)
         print(auction_details)
 
 
