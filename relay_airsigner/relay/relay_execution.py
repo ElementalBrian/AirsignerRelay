@@ -42,7 +42,6 @@ class RelayExecution(RelaySpec):
                     if won_bundle_ids_for_key and price:
                         winners[api_key] = (price, won_bundle_ids_for_key)
             self.results_by_auction_time[latest_start_time] = winners
-            print("RESULTS", self.results_by_auction_time)
             self._get_signatures_from_airsigner()
 
     def _get_signatures_from_airsigner(self):
@@ -50,7 +49,7 @@ class RelayExecution(RelaySpec):
         results = self.results_by_auction_time[latest_auction]  # {'jacob': (8423343045, ['0x8a3edb2ca6224eeb05516aa9ea3ca804ec7600f7f5fdb261e721c9b5459979ba'])}
         for api_key, bundles_by_bid in results.items():
             signatures = []
-            (price, won_bundle_ids_for_key) = bundles_by_bid
+            (bid, won_bundle_ids_for_key) = bundles_by_bid
             for bundle_id in won_bundle_ids_for_key:
                 bundle_obj = self.auction_objs[bundle_id]
                 for item in bundle_obj.items:
@@ -58,6 +57,7 @@ class RelayExecution(RelaySpec):
                     r = requests.post(self.signer_url, params=payload, data=str(item.encoded_parameters).replace("'", '"').replace("True", '"True"').replace("False", '"False"').replace("null", '"null"'))
                     if r.status_code == 200:
                         data = json.loads(r.text)
+                        data["bid"] = bid
                         signatures.append(data)
             self.participants[api_key].most_recent_winning_data = signatures
 
