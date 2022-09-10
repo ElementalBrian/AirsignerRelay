@@ -5,7 +5,7 @@ from eth_account.messages import defunct_hash_message
 from eth_account import Account
 from web3 import Web3
 from hdwallet import HDWallet
-import asyncio, json, os
+import asyncio, json, os, time, datetime
 
 
 class AirsignerExecution:
@@ -46,7 +46,7 @@ class AirsignerExecution:
         ## this may not be 100% right, waiting for details on the differing signatures, might not fit both into a single _hash_and_sign()
         dapi_signature = self._hash_and_sign(account, price, airnode_time, beacon_id, searcher)
         relayer_signature = self._hash_and_sign(account, price, auction_time, beacon_id, searcher)
-        print(f"asset: {asset} price: {price} at: {airnode_time} signatures: {dapi_signature} & {relayer_signature}")
+        print(f"{int(time.mktime(datetime.datetime.now().timetuple()))} {self.this}: asset {asset} price {price} at {airnode_time} signatures {dapi_signature} & {relayer_signature}")
         return {'asset': asset, 'dapi_signature': dapi_signature, "relayer_signature": relayer_signature,  'price': str(price), 'price_decimals': str(self.airnode_price_decimals), 'auction_time': str(auction_time), 'airnode_time': str(airnode_time), 'endpoint_id': endpoint_id, 'beacon_id': beacon_id, 'searcher': searcher}
 
     def _hash_and_sign(self, account, price, time, beacon_id, searcher):
@@ -67,20 +67,6 @@ class AirsignerExecution:
         config = ifile.read()
         ifile.close()
         return json.loads(config)["config"]
-
-    def read_beacons_and_endpoints(self):
-        ifile = open("config/beacons_subscriptions.json", "r")
-        config = ifile.read()
-        ifile.close()
-        beacons = json.loads(config)["beacons"]
-        subscription_ids = json.loads(config)["subscription_ids"]
-        beacons_and_endpoints = {}
-        for endpoint in beacons:
-            beacons = {"0x000000000000000000000000000000000000000000000000000000000000000": "default"}
-            for asset, beacon in endpoint["beacon_ids"].items():
-                beacons[beacon] = asset
-            beacons_and_endpoints[endpoint["endpoint_id"]] = beacons
-        return beacons, subscription_ids
 
     def _run_webserver(self):
         self.http_server = AirsignerHttp(self.http_port, self)

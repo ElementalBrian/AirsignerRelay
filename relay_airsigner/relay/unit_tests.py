@@ -146,9 +146,9 @@ def run_once():
 
 
 if __name__ == "__main__":
-    web3 = Web3(HTTPProvider(endpoint_uri=os.getenv("ganache"), request_kwargs={'timeout': 100}))
-    account = web3.eth.account.from_key(os.getenv("flashbots"))
-    deploy_airsigner_contract(web3, account)
+    # web3 = Web3(HTTPProvider(endpoint_uri=os.getenv("ganache"), request_kwargs={'timeout': 100}))
+    # account = web3.eth.account.from_key(os.getenv("flashbots"))
+    # deploy_airsigner_contract(web3, account)
 
     while True:
         run_once()

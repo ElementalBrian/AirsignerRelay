@@ -29,7 +29,7 @@ class RelayExecution(RelaySpec):
         if api_key in self.participants:
             results = self.participants[api_key].most_recent_winning_data
             if results:
-                return {"results": results}
+                return {"your_latest_winners": results, "latest_auction": max(self.results_by_auction_time.keys())}
         return {api_key: "no auctions won today"}
 
     def _calculate_latest_winners(self):
@@ -101,7 +101,8 @@ class RelayExecution(RelaySpec):
             bundle_ids.append(bundle_id)
         for bundle_id in bundle_ids:
             bundle_obj = self.auction_objs[bundle_id]
-            prices.append(bundle_obj.highest_bid.amount)
+            if bundle_obj.highest_bid:
+                prices.append(bundle_obj.highest_bid.amount)
         return values, prices, bundle_ids
 
     def bid_aggregator(self, api_key, bid_parameters):
