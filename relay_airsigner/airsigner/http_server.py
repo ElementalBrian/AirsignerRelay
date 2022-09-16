@@ -42,11 +42,10 @@ class Sign(tornado.web.RequestHandler):
             relay_key = self.get_query_argument("key")
             endpoint_id = self.get_query_argument("endpoint")
             auction_time = int(self.get_query_argument("auction_time"))
-            # airnode_time = int(self.get_query_argument("airnode_time"))
             searcher = self.get_query_argument("searcher")
-            beacon_id = self.get_query_argument("beacon", default="0x000000000000000000000000000000000000000000000000000000000000000")
+            subscription_id = self.get_query_argument("subscription_id", default="0x000000000000000000000000000000000000000000000000000000000000000")
             encoded_parameters = json.loads(self.request.body)
-            response: Dict = http_server.callback.signed_oracle_update(relay_key, auction_time, beacon_id, endpoint_id, searcher, encoded_parameters)
+            response: Dict = http_server.callback.signed_oracle_update(relay_key, auction_time, subscription_id, endpoint_id, searcher, encoded_parameters)
             self.write(response)
         except Exception as e:
             print(e)

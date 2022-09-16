@@ -81,7 +81,7 @@ def get_user_by_hostname():
     hostname = socket.gethostname()
     options = {
         'bot-host': 'jacob',
-        'node': 'burak',
+        'airnode-host': 'burak',
         'laptop': 'midhav'
     }
     return options[hostname], users[options[hostname]]
@@ -123,9 +123,12 @@ def run_once():
             endpoint_id = endpoint
             beacon_ids = beacons
 
-        beacon_id, asset = random.choice(list(beacon_ids.items()))
-        subscription_id = random.choice(list(get_subs_from_web()["subscription_ids"]))
-
+        try:
+            beacon_id, asset = random.choice(list(beacon_ids.items()))
+            subscription_id = random.choice(list(get_subs_from_web()["subscription_ids"]))
+        except Exception as e:
+            print(f'{e}')
+            return False
         key, address = get_user_by_hostname()
         amount = get_random_bid()
 

@@ -11,6 +11,11 @@ def pricing(asset, url, endpoint_id, api_key):
         print(f'{e}: {data}')
         return False
 
+def coingecko_pricing(asset):
+    url = "https://api.coingecko.com/api/v3/coins/" + asset
+    response = requests.get(url).text
+    data = json.loads(response)
+    return data["market_data"]["current_price"]['usd'], int(time.mktime(datetime.datetime.now().timetuple()))
 
 if __name__ == "__main__":
     ifile = open("../relay/config/beacons_subscriptions.json", "r")
@@ -25,10 +30,11 @@ if __name__ == "__main__":
         beacons_and_endpoints[endpoint["endpoint_id"]] = beacons
     for endpoint_id, beacons in beacons_and_endpoints.items():
         for beacon, asset in beacons.items():
-            url = "https://vnci1lns59.execute-api.us-east-1.amazonaws.com/v1/"
+            url = "http://192.168.1.93:80"
             endpoint_id = "0xf10f067e716dd8b9c91b818e3a933b880ecb3929c04a6cd234c171aa27c6eefe"
-            api_key = "_diarrhea_out_the_dick_diarrhea_out_the_dick_"
-            print(f'{asset}: {pricing(asset, url, endpoint_id, api_key)}')
+            api_key = "cheese_cheese_cheese_cheese_cheese_cheese_cheese_cheese_8"
+            # print(f'{asset}: {pricing(asset, url, endpoint_id, api_key)}')
+            print(f'{asset}: {coingecko_pricing(asset)}')
 
 
 

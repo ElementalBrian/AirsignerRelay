@@ -18,7 +18,7 @@ class RelayHttp:
                 (r"/", Splash),
                 (r"/running", Running),
                 (r"/admin", Admin),
-                (r"/purge", Purge),
+                (r"/profit", Profit),
                 (r"/claim", Claim),
                 (r"/ids", Ids),
                 (r"/subs", Subscriptions),
@@ -113,12 +113,10 @@ class Running(tornado.web.RequestHandler):
         except Exception as e:
             self.send_error(400, reason=e)
 
-class Purge(tornado.web.RequestHandler):
+class Profit(tornado.web.RequestHandler):
     async def get(self):
         try:
-            admin_key = self.get_query_argument("key")
-            age = int(self.get_query_argument("age"))
-            response: Dict = http_server.callback.garbage_collector(age, admin_key)
+            response = {"profit": http_server.callback.profit}
             self.write(response)
         except Exception as e:
             self.send_error(400, reason=e)

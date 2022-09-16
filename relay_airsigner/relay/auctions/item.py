@@ -1,7 +1,7 @@
 # the Item class creates an object to represent what is being bid on
 
 class Item:
-    def __init__(self, template_id, encoded_parameters, chain_id, endpoint_id, subscription_id, searcher, beacon):
+    def __init__(self, template_id, encoded_parameters, chain_id, endpoint_id, subscription_id, searcher, beacon=None):
         self.this = self.__class__.__name__
         self.template_id = template_id
         self.encoded_parameters = encoded_parameters

@@ -7,8 +7,9 @@ class Participant:
         self.api_key = api_key
         print(f'{int(time.mktime(datetime.datetime.now().timetuple()))} {self.this}: object for new user created with key {api_key}')
         self.bundles = []
-        self.last_seen = None
+        self.last_seen = int(time.mktime(datetime.datetime.now().timetuple()))
         self.most_recent_winning_data = None
+        self.strikes = set()
 
     def bid(self, auction, amount):
         if amount <= 0:
