@@ -26,6 +26,31 @@ class RelayExecution(RelaySpec):
         # TODO replace print statements with logging function
         print(f'{self.this}: Starting Relay auction execution on thread {thread}')
 
+    def _garbage_collector(self, age):
+        bundles_by_auction_time = list(self.bundles_by_auction_time.keys())
+        if len(bundles_by_auction_time) > 0:
+            for auction in bundles_by_auction_time:
+                if int(time.mktime(datetime.datetime.now().timetuple())) - auction > age:
+                    print(f'aging out auction at {auction} from bundles_by_auction_time')
+                    del self.bundles_by_auction_time[auction]
+        auction_objs = list(self.auction_objs)
+        if len(auction_objs) > 0:
+            for bundle in auction_objs:
+                if int(time.mktime(datetime.datetime.now().timetuple())) - self.auction_objs[bundle].auction_start > age:
+                    print(f'aging out bundle {bundle} from self.auction_objs')
+                    del self.auction_objs[bundle]
+        results_by_auction_time = list(self.results_by_auction_time.keys())
+        if len(results_by_auction_time) > 0:
+            for result in results_by_auction_time:
+                if int(time.mktime(datetime.datetime.now().timetuple())) - result > age:
+                    print(f'aging out auction at {result} from results_by_auction_time')
+                    del self.results_by_auction_time[result]
+        onchain_subcription_ids_found = list(self.onchain_subcription_ids_found.keys())
+        if len(onchain_subcription_ids_found) > 0:
+            for auction in onchain_subcription_ids_found:
+                if int(time.mktime(datetime.datetime.now().timetuple())) - auction > age:
+                    print(f'aging out auction at {auction} from onchain_subcription_ids_found')
+                    del self.onchain_subcription_ids_found[auction]
 
     def claim(self, api_key):
         if api_key in self.participants:
@@ -226,11 +251,13 @@ async def run_monitor_service(executor, web3):
                 print(f"calculating winners")
                 executor.onchain_subcription_ids_found[latest_auction] = ["0xdd7a1204cca6280e04b940631b837681594b0a1122b1c48f14449bfa54c74419", "0xdf1f500ae61874b301ce737b820a30ce58c374db820b2b71e2c83a0813ccf801"]
                 executor._calculate_latest_winners()
-                executor._age_out_participants(300)
+                executor._age_out_participants(executor.auction_runtime_seconds*50)
+                executor._garbage_collector(executor.auction_runtime_seconds*50)
+
             else:
                 try:
                     contract = executor.load_contract(web3=web3, abi=executor.dapi_server_abi, address=executor.dapi_server_address)
-                    events = list(executor.fetch_events(contract.events.UpdatedBeaconWithSignedData, from_block=web3.eth.blockNumber - 100))
+                    events = list(executor.fetch_events(contract.events.UpdatedBeaconWithSignedData, from_block=web3.eth.blockNumber - 30))
                     if events:
                         for item in events:
                             beacon_id = item["args"]["beaconId"].hex()  # this will be changed to sub ID when airsigner proxy is deployed
