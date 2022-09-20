@@ -248,3 +248,138 @@ strikes for burak total number is 3
 strikes for midhav total number is 3
 strikes for burak total number is 3
 strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for burak total number is 3
+strikes for burak total number is 3
+strikes for burak total number is 3
+strikes for burak total number is 3
+strikes for midhav total number is 3
+MonitorService: execution phase for auction started at 1663651920 will be completed at 1663651940
+MonitorService: calculating winners
+1663651930 RelayExecution: bid was queued for midhav
+1663651931 RelayExecution: bid was queued for midhav
+1663651932 RelayExecution: bid was queued for midhav
+MonitorService: execution phase for auction started at 1663651920 will be completed at 1663651940
+1663651933 RelayExecution: bid was queued for midhav
+1663651934 RelayExecution: bid was queued for midhav
+1663651934 RelayExecution: bid was queued for midhav
+MonitorService: execution phase for auction started at 1663651920 will be completed at 1663651940
+1663651935 RelayExecution: bid was queued for midhav
+1663651936 RelayExecution: bid was queued for midhav
+MonitorService: execution phase for auction started at 1663651920 will be completed at 1663651940
+1663651937 RelayExecution: bid was queued for jacob
+1663651937 RelayExecution: bid was queued for burak
+1663651937 RelayExecution: bid was queued for midhav
+MonitorService: execution phase for auction started at 1663651920 will be completed at 1663651940
+1663651939 RelayExecution: bid was queued for burak
+MonitorService: there is a queue with a depth of 12, executing bids....
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for burak total number is 3
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for burak total number is 3
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for burak total number is 3
+strikes for burak total number is 3
+strikes for midhav total number is 3
+strikes for burak total number is 3
+strikes for midhav total number is 3
+strikes for burak total number is 3
+strikes for burak total number is 3
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for burak total number is 3
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+1663651950 RelayExecution: bid was queued for midhav
+MonitorService: execution phase for auction started at 1663651940 will be completed at 1663651960
+MonitorService: calculating winners
+1663651951 RelayExecution: bid was queued for burak
+1663651951 RelayExecution: bid was queued for midhav
+MonitorService: execution phase for auction started at 1663651940 will be completed at 1663651960
+1663651955 RelayExecution: bid was queued for burak
+1663651955 RelayExecution: bid was queued for burak
+1663651955 RelayExecution: bid was queued for midhav
+1663651955 RelayExecution: bid was queued for midhav
+1663651955 RelayExecution: bid was queued for midhav
+1663651955 RelayExecution: bid was queued for midhav
+MonitorService: execution phase for auction started at 1663651940 will be completed at 1663651960
+1663651956 RelayExecution: bid was queued for midhav
+1663651957 RelayExecution: bid was queued for midhav
+1663651957 RelayExecution: bid was queued for midhav
+MonitorService: execution phase for auction started at 1663651940 will be completed at 1663651960
+1663651958 RelayExecution: bid was queued for midhav
+1663651959 RelayExecution: bid was queued for jacob
+MonitorService: execution phase for auction started at 1663651940 will be completed at 1663651960
+1663651959 RelayExecution: bid was queued for midhav
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+MonitorService: execution phase for auction started at 1663651940 will be completed at 1663651960
+strikes for midhav total number is 3
+MonitorService: execution phase for auction started at 1663651940 will be completed at 1663651960
+strikes for midhav total number is 3
+MonitorService: there is a queue with a depth of 15, executing bids....
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+removing strike 1663651770 older than 180 seconds for burak total number is now 2 strikes
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+1663651969 RelayExecution: burak removed bid for bundle ID: 0xdcf46002c0c014e67c4ba8906a10fdaf0c5ec3bd5b7a8c4aa2b9aabef83a06af
+1663651969 RelayExecution: jacob removed bid for bundle ID: 0x92de9dd8ed5a5af538db7805eefaa44aa99c1be77b0515ffa36fa9fe8a71c213
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+MonitorService: execution phase for auction started at 1663651960 will be completed at 1663651980
+MonitorService: calculating winners
+1663651971 RelayExecution: bid was queued for burak
+1663651971 RelayExecution: bid was queued for midhav
+MonitorService: execution phase for auction started at 1663651960 will be completed at 1663651980
+1663651974 RelayExecution: bid was queued for burak
+1663651974 RelayExecution: bid was queued for midhav
+1663651974 RelayExecution: bid was queued for midhav
+1663651975 RelayExecution: bid was queued for burak
+MonitorService: execution phase for auction started at 1663651960 will be completed at 1663651980
+1663651976 RelayExecution: bid was queued for midhav
+1663651977 RelayExecution: bid was queued for midhav
+1663651977 RelayExecution: bid was queued for burak
+1663651977 RelayExecution: bid was queued for jacob
+MonitorService: execution phase for auction started at 1663651960 will be completed at 1663651980
+1663651978 RelayExecution: bid was queued for jacob
+1663651979 RelayExecution: bid was queued for midhav
+1663651979 RelayExecution: bid was queued for jacob
+MonitorService: execution phase for auction started at 1663651960 will be completed at 1663651980
+strikes for midhav total number is 3
+removing strike 1663651790 older than 180 seconds for burak total number is now 1 strikes
+strikes for jacob total number is 3
+MonitorService: execution phase for auction started at 1663651960 will be completed at 1663651980
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+MonitorService: execution phase for auction started at 1663651960 will be completed at 1663651980
+strikes for jacob total number is 3
+strikes for midhav total number is 3
+strikes for jacob total number is 3
+MonitorService: execution phase for auction started at 1663651960 will be completed at 1663651980
+strikes for midhav total number is 3
+strikes for midhav total number is 3
+MonitorService: execution phase for auction started at 1663651960 will be completed at 1663651980
+strikes for midhav total number is 3
+MonitorService: execution phase for auction started at 1663651960 will be completed at 1663651980
+strikes for midhav total number is 3
+MonitorService: execution phase for auction started at 1663651960 will be completed at 1663651980
+removing strike 1663651810 older than 180 seconds for burak total number is now 0 strikes
+MonitorService: execution phase for auction started at 1663651960 will be completed at 1663651980
+strikes for midhav total number is 3
