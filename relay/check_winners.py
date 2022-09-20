@@ -6,7 +6,6 @@ def run():
         print(f'{api_key}: {response.text}')
 
 if __name__ == "__main__":
-    while True:
-        print(int(time.mktime(datetime.datetime.now().timetuple())))
-        run()
-        time.sleep(5)
+    print("time:", int(time.mktime(datetime.datetime.now().timetuple())))
+    run()
+

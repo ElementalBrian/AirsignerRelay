@@ -242,7 +242,7 @@ class RelayExecution(RelaySpec):
 
 
 async def run_monitor_service(executor, web3):
-    print(f'running event monitor service on thread: {current_thread().getName()[-1]}')
+    print(f'RelayExecution: running event monitor service on thread: {current_thread().getName()[-1]}')
     while True:
         latest_auction = max(executor.bundles_by_auction_time.keys())
         timestamp = int(time.mktime(datetime.datetime.now().timetuple()))

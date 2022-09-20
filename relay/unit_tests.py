@@ -17,7 +17,7 @@ DAPI_SERVER = "0xd7CA5BD7a45985D271F216Cb1CAD82348464f6d5"
 
 DEPLOYED_CONTRACTS = {}
 
-users = {'jacob': JACOB, 'burak': BURAK, 'midhav': MIDHAV}
+users = {'jacob': JACOB, 'burak_the_legend': BURAK, 'midhav': MIDHAV}
 open_auctions = []
 
 
@@ -80,9 +80,9 @@ def get_user_by_hostname():
     import socket
     hostname = socket.gethostname()
     options = {
-        'bot-host': 'jacob',
-        'airnode-host': 'burak',
-        'laptop': 'midhav'
+        'test-vm-01': 'jacob',
+        'test-vm-02': 'burak_the_legend',
+        'test-vm-03': 'midhav'
     }
     return options[hostname], users[options[hostname]]
 
@@ -129,7 +129,7 @@ def run_once():
         except Exception as e:
             print(f'{e}')
             return False
-        key, address = get_user_by_hostname()
+        key, address = get_random_user()  # better testing if switched to get_user_by_hostname() and run from multiple hosts, need to configure the function to your env
         amount = get_random_bid()
 
         airnodes.append(AIRNODE_ADDRESS)
@@ -148,11 +148,12 @@ def run_once():
         print(auction_details)
 
 
+WEB3_ON = False
 if __name__ == "__main__":
-    # web3 = Web3(HTTPProvider(endpoint_uri=os.getenv("ganache"), request_kwargs={'timeout': 100}))
-    # account = web3.eth.account.from_key(os.getenv("flashbots"))
-    # deploy_airsigner_contract(web3, account)
-
+    if WEB3_ON:
+        web3 = Web3(HTTPProvider(endpoint_uri=os.getenv("provider_endpoint"), request_kwargs={'timeout': 100}))
+        account = web3.eth.account.from_key(os.getenv("test_account"))
+        deploy_airsigner_contract(web3, account)
     while True:
         run_once()
         time.sleep(1)
