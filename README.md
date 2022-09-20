@@ -2,7 +2,7 @@
 
 ## Airsigner Execution
 
-### The Airsigner Execution piece runs on at data provider and is responsible for signing bundles of bids that it receives from the Airsigner Relay, which is another execution running externally buy a trusted party or in the future a network of nodes operating in a decentralized manner.
+### The Airsigner Execution piece runs at data provider and is responsible for signing bundles of bids that it receives from the Airsigner Relay, which is another execution running externally buy a trusted party or in the future a network of nodes operating in a decentralized manner.
 
 ### Start Airsigner Execution like so:
 ```
