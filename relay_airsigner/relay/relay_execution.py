@@ -37,7 +37,7 @@ class RelayExecution(RelaySpec):
         if len(auction_objs) > 0:
             for bundle in auction_objs:
                 if int(time.mktime(datetime.datetime.now().timetuple())) - self.auction_objs[bundle].auction_start > age:
-                    print(f'aging out bundle {bundle} from self.auction_objs')
+                    print(f'aging out bundle {bundle} from auction_objs')
                     del self.auction_objs[bundle]
         results_by_auction_time = list(self.results_by_auction_time.keys())
         if len(results_by_auction_time) > 0:
@@ -93,25 +93,26 @@ class RelayExecution(RelaySpec):
 
     def _check_key_for_wins(self, api_key, latest_start_time):
         values, prices, bundle_ids = self._get_subscription_ids_and_bids_by_bundle_for_auction(latest_start_time)
-        combinations = self._compute_combinations(values)
-        max_profit = 0
-        optimal_combination = []
-        if len(combinations) > 0:
-            for combination in combinations:
-                price = sum(prices[i] for i in combination)
-                if price > max_profit:
-                    optimal_combination = combination
-                    max_profit = price
-            won_bundle_ids = [bundle_ids[i] for i in optimal_combination]
-            won_bundles = []
-            for bundle_id in won_bundle_ids:
-                bundle_obj = self.auction_objs[bundle_id]
-                if bundle_obj.highest_bid.bidder.api_key == api_key:
-                    won_bundles.append(bundle_id)
-                if bundle_obj.highest_bid.amount is not None and won_bundles:
-                    amount = bundle_obj.highest_bid.amount
-                    self.profit += amount
-                    return won_bundles, amount
+        if len({len(i) for i in [values, prices, bundle_ids]}) == 1:
+            combinations = self._compute_combinations(values)
+            max_profit = 0
+            optimal_combination = []
+            if len(combinations) > 0:
+                for combination in combinations:
+                    price = sum(prices[i] for i in combination)
+                    if price > max_profit:
+                        optimal_combination = combination
+                        max_profit = price
+                won_bundle_ids = [bundle_ids[i] for i in optimal_combination]
+                won_bundles = []
+                for bundle_id in won_bundle_ids:
+                    bundle_obj = self.auction_objs[bundle_id]
+                    if bundle_obj.highest_bid.bidder.api_key == api_key:
+                        won_bundles.append(bundle_id)
+                    if bundle_obj.highest_bid.amount is not None and won_bundles:
+                        amount = bundle_obj.highest_bid.amount
+                        self.profit += amount
+                        return won_bundles, amount
         return None, None
 
     def _compute_combinations(self, seq):
