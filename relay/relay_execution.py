@@ -7,7 +7,7 @@ from web3._utils.abi import build_default_registry
 from eth_abi.codec import ABICodec
 from threading import Thread, current_thread
 from web3 import Web3
-import datetime, time, asyncio, json, itertools, requests
+import datetime, time, asyncio, json, itertools, requests, logging
 
 
 class RelayExecution(RelaySpec):
@@ -23,33 +23,42 @@ class RelayExecution(RelaySpec):
         self.results_by_auction_time = {}
         self.onchain_subcription_ids_found = {}
         self.execution_queue = set()
-        # TODO replace print statements with logging function
-        print(f'{self.this}: Starting Relay auction execution on thread {thread}')
+
+        filename = self.this + "_" + str(int(time.mktime(datetime.datetime.now().timetuple()))) + ".log"
+        self.logger = logging.getLogger(self.this)
+        self.logger.setLevel(logging.DEBUG)
+        file_handler = logging.FileHandler(filename)
+        file_handler.setLevel(logging.DEBUG)
+        stream_handler = logging.StreamHandler()
+        stream_handler.setLevel(logging.ERROR)
+        self.logger.addHandler(stream_handler)
+        self.logger.addHandler(file_handler)
+        self.logger.info(f'{self.this}: Starting Relay auction execution on thread {thread}')
 
     def _garbage_collector(self, age):
         bundles_by_auction_time = list(self.bundles_by_auction_time.keys())
         if len(bundles_by_auction_time) > 0:
             for auction in bundles_by_auction_time:
                 if int(time.mktime(datetime.datetime.now().timetuple())) - auction > age:
-                    print(f'aging out auction at {auction} from bundles_by_auction_time')
+                    self.logger.info(f'aging out auction at {auction} from bundles_by_auction_time')
                     del self.bundles_by_auction_time[auction]
         auction_objs = list(self.auction_objs)
         if len(auction_objs) > 0:
             for bundle in auction_objs:
                 if int(time.mktime(datetime.datetime.now().timetuple())) - self.auction_objs[bundle].auction_start > age:
-                    print(f'aging out bundle {bundle} from auction_objs')
+                    self.logger.info(f'aging out bundle {bundle} from auction_objs')
                     del self.auction_objs[bundle]
         results_by_auction_time = list(self.results_by_auction_time.keys())
         if len(results_by_auction_time) > 0:
             for result in results_by_auction_time:
                 if int(time.mktime(datetime.datetime.now().timetuple())) - result > age:
-                    print(f'aging out auction at {result} from results_by_auction_time')
+                    self.logger.info(f'aging out auction at {result} from results_by_auction_time')
                     del self.results_by_auction_time[result]
         onchain_subcription_ids_found = list(self.onchain_subcription_ids_found.keys())
         if len(onchain_subcription_ids_found) > 0:
             for auction in onchain_subcription_ids_found:
                 if int(time.mktime(datetime.datetime.now().timetuple())) - auction > age:
-                    print(f'aging out auction at {auction} from onchain_subcription_ids_found')
+                    self.logger.info(f'aging out auction at {auction} from onchain_subcription_ids_found')
                     del self.onchain_subcription_ids_found[auction]
 
     def claim(self, api_key):
@@ -151,7 +160,7 @@ class RelayExecution(RelaySpec):
         if max(self.bundles_by_auction_time.keys()) == auction_start - self.auction_runtime_seconds:
             if (api_key, bid_parameters) not in self.execution_queue:
                 self.execution_queue.add((api_key, bid_parameters))
-                print(f'{int(time.mktime(datetime.datetime.now().timetuple()))} {self.this}: bid was queued for {api_key}')
+                self.logger.debug(f'{int(time.mktime(datetime.datetime.now().timetuple()))} {self.this}: bid was queued for {api_key}')
                 return {'queued': f'The auction started at {max(self.bundles_by_auction_time.keys())} is over and currently in the execution phase. Your bid has been queued for the next auction which starts at {auction_start + self.auction_runtime_seconds}'}
             else:
                 return {"rejected": "a bid with these same parameters is already in the queue"}
@@ -166,7 +175,7 @@ class RelayExecution(RelaySpec):
         if bundle_id in self.auction_objs.keys() and avg_bid_per_sub <= 0:
             del self.auction_objs[bundle_id]
             self.bundles_by_auction_time[auction_start] = list(filter(lambda a: a != bundle_id, self.bundles_by_auction_time[auction_start]))
-            print(f'{int(time.mktime(datetime.datetime.now().timetuple()))} {self.this}: {api_key} removed bid for bundle ID: {bundle_id}')
+            self.logger.info(f'{int(time.mktime(datetime.datetime.now().timetuple()))} {self.this}: {api_key} removed bid for bundle ID: {bundle_id}')
             return {'retracted': f'bid removed for bundle ID: {bundle_id}'}
         if bundle_obj is not False:
             if user_obj.bid(bundle_obj, avg_bid_per_sub) is True:
@@ -205,16 +214,16 @@ class RelayExecution(RelaySpec):
                 if auction["subscription_id"] not in self.onchain_subcription_ids_found[int(auction["auction_time"])]:
                     user_obj.strikes.add(int(auction["auction_time"]))
             except Exception as e:
-                print(f'{e}: {self.onchain_subcription_ids_found.keys()}, {auction}')
+                self.logger.warning(f'{e}: {self.onchain_subcription_ids_found.keys()}, {auction}')
                 return True
         strikes = list(user_obj.strikes)
         if len(strikes) >= 1:
             for strike in strikes:
                 if int(time.mktime(datetime.datetime.now().timetuple())) - strike > age and strike in user_obj.strikes:
                     user_obj.strikes.remove(strike)
-                    print(f'removing strike {strike} older than {age} seconds for {api_key} total number is now {len(user_obj.strikes)} strikes')
+                    self.logger.info(f'removing strike {strike} older than {age} seconds for {api_key} total number is now {len(user_obj.strikes)} strikes')
         if len(user_obj.strikes) >= 3:
-            print(f'strikes for {api_key} total number is {len(user_obj.strikes)}')
+            self.logger.info(f'strikes for {api_key} total number is {len(user_obj.strikes)}')
             return False
         return True
 
@@ -234,7 +243,7 @@ class RelayExecution(RelaySpec):
         participants = list(self.participants.keys())
         for api_key in participants:
             if int(time.mktime(datetime.datetime.now().timetuple())) - self.participants[api_key].last_seen > age:
-                print(f'Aging out {api_key} from participants, last seen on {self.participants[api_key].last_seen}, {int(time.mktime(datetime.datetime.now().timetuple())) - self.participants[api_key].last_seen} seconds ago, timeout: {age}')
+                self.logger.info(f'Aging out {api_key} from participants, last seen on {self.participants[api_key].last_seen}, {int(time.mktime(datetime.datetime.now().timetuple())) - self.participants[api_key].last_seen} seconds ago, timeout: {age}')
                 del self.participants[api_key]
 
     def kill(self):
@@ -242,14 +251,14 @@ class RelayExecution(RelaySpec):
 
 
 async def run_monitor_service(executor, web3):
-    print(f'RelayExecution: running event monitor service on thread: {current_thread().getName()[-1]}')
+    executor.logger.info(f'MonitorService: running event monitor service on thread: {current_thread().getName()[-1]}')
     while True:
         latest_auction = max(executor.bundles_by_auction_time.keys())
         timestamp = int(time.mktime(datetime.datetime.now().timetuple()))
         if (timestamp - timestamp % executor.auction_runtime_seconds) >= latest_auction + executor.auction_runtime_seconds or timestamp == (latest_auction + ((executor.auction_runtime_seconds)*2) - 1):
-            print(f'execution phase for auction started at {latest_auction} will be completed at {latest_auction + (executor.auction_runtime_seconds) * 2}')
+            executor.logger.info(f'MonitorService: execution phase for auction started at {latest_auction} will be completed at {latest_auction + (executor.auction_runtime_seconds) * 2}')
             if latest_auction not in executor.results_by_auction_time.keys():
-                print(f"calculating winners")
+                executor.logger.info(f"MonitorService: calculating winners")
                 executor.onchain_subcription_ids_found[latest_auction] = ["0xdd7a1204cca6280e04b940631b837681594b0a1122b1c48f14449bfa54c74419", "0xdf1f500ae61874b301ce737b820a30ce58c374db820b2b71e2c83a0813ccf801"]
                 executor._calculate_latest_winners()
                 executor._age_out_participants(executor.auction_runtime_seconds*50)
@@ -263,12 +272,12 @@ async def run_monitor_service(executor, web3):
                         for item in events:
                             beacon_id = item["args"]["beaconId"].hex()  # this will be changed to sub ID when airsigner proxy is deployed
                             executor.onchain_subcription_ids_found[latest_auction].append(beacon_id)
-                            print(f'{timestamp} EVENT FOUND FOR BEACON: 0x{beacon_id} in block {item["blockNumber"]}')
+                            executor.logger.info(f'{timestamp} MonitorService: EVENT FOUND FOR BEACON: 0x{beacon_id} in block {item["blockNumber"]}')
                 except Exception as e:
-                    print(f'error retrieving events on chain: {e}')
+                    executor.logger.error(f'MonitorService: error retrieving events on chain: {e}')
             time.sleep(executor.auction_runtime_seconds/10)
         elif len(executor.execution_queue) > 0:
-            print(f"there is a queue with a depth of {len(executor.execution_queue)}, executing bids....")
+            executor.logger.info(f"MonitorService: there is a queue with a depth of {len(executor.execution_queue)}, executing bids....")
             queue = list(executor.execution_queue)
             for queued_bid in queue:
                 executor.execution_queue.remove(queued_bid)

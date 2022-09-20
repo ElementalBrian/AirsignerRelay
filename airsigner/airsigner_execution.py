@@ -5,13 +5,12 @@ from eth_account.messages import defunct_hash_message
 from eth_account import Account
 from web3 import Web3
 from hdwallet import HDWallet
-import asyncio, json, os, time, datetime
+import asyncio, json, os, time, datetime, logging
 
 
 class AirsignerExecution:
     def __init__(self):
         self.this = self.__class__.__name__
-
 
         load_dotenv("config/secrets.env")
         self.relay_key = os.getenv("RELAY_API_KEY")
@@ -23,8 +22,16 @@ class AirsignerExecution:
         self.http_port = self.config["port"]
         self.http_gateway_url = self.config["airnodeHTTP"]
 
-        # TODO replace print statements with logging function
-        print(f'{self.this}: Starting Airsigner Execution')
+        filename = self.this+"_"+str(int(time.mktime(datetime.datetime.now().timetuple())))+".log"
+        self.logger = logging.getLogger(self.this)
+        self.logger.setLevel(logging.DEBUG)
+        file_handler = logging.FileHandler(filename)
+        file_handler.setLevel(logging.DEBUG)
+        stream_handler = logging.StreamHandler()
+        stream_handler.setLevel(logging.ERROR)
+        self.logger.addHandler(stream_handler)
+        self.logger.addHandler(file_handler)
+        self.logger.info(f'{self.this}: Starting Airsigner Execution')
 
 
     def signed_oracle_update(self, relay_key, auction_time, subscription_id, endpoint_id, searcher, encoded_parameters):
@@ -47,7 +54,7 @@ class AirsignerExecution:
         ## this may not be 100% right, waiting for details on the differing signatures, might not fit both into a single _hash_and_sign()
         dapi_signature = self._hash_and_sign(account, price, airnode_time, subscription_id, searcher)
         relayer_signature = self._hash_and_sign(account, price, auction_time, subscription_id, searcher)
-        print(f"{int(time.mktime(datetime.datetime.now().timetuple()))} {self.this}: asset {asset} price {price} at {airnode_time} signatures {dapi_signature} & {relayer_signature}")
+        self.logger.info(f"{int(time.mktime(datetime.datetime.now().timetuple()))} {self.this}: asset {asset} price {price} at {airnode_time} signatures {dapi_signature} & {relayer_signature}")
         return {'asset': asset, 'auction_time': str(auction_time), 'dapi_signature': dapi_signature, "relayer_signature": relayer_signature,  'price': str(price), 'price_decimals': str(self.airnode_price_decimals), 'airnode_time': str(airnode_time), 'endpoint_id': endpoint_id, 'subscription_id': subscription_id, 'searcher': searcher}
 
     def _hash_and_sign(self, account, price, time, beacon_id, searcher):
