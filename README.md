@@ -1,8 +1,8 @@
-# Welcome to Airsigner! This auction system allows whitelisted MEV searchers to place silent bids for the right to use a certain bundle of oracle updates that they retrieve from a data provider via a signed message through an HTTP endpoint. 
+# Welcome to Airsigner! This auction system allows whitelisted MEV searchers to place silent bids for the right to use a certain bundle of oracle updates that they retrieve from a data provider via a signed message through an HTTP endpoint.
 
 ## Airsigner Execution
 
-### The Airsigner Execution piece runs on at data provider and is responsible for signing bundles of bids that it receives from the Airsigner Relay, which is another execution running externally buy a trusted party or in the future a network of nodes operating in a decentralized manner.
+### The Airsigner Execution piece runs at the data provider and is responsible for signing bundles of bids that it receives from the Airsigner Relay, which is another execution running externally by a trusted party, or in the future a network of nodes operating in a decentralized manner.
 
 ### Start Airsigner Execution like so:
 ```
@@ -13,7 +13,7 @@ AirsignerHttp: Starting Airsigner webserver at 192.168.1.93:33667
 
 ## Airsigner Relay
 
-### The Airsigner Relay accepts bids from searchers, validates them, and communicates with the Airsigner to retrieve signed oracle updates based on the winner of each auction bundle.
+### The Airsigner Relay accepts bids from searchers, validates them, and communicates with the Airsigners to retrieve signed oracle updates based on the winner of each auction bundle.
 
 ### Start Airsigner Relay like so:
 ```
@@ -25,7 +25,7 @@ RelayHttp: Starting Relay HTTP webserver at 192.168.1.93:33666 on thread 1
 
 ## Unit Tests
 
-### There is a Unit Test script that will create random requests to the Airsigner Relay of many different types. There will be continuous successful requests, duplicate requests, incorrect requests, and others.
+### There is a Unit Test that continuously creates random requests to the Airsigner Relay of different types. There will be successful requests, duplicate requests, incorrect requests, and others.
 
 ### Start Unit Tests like so:
 ```
@@ -35,7 +35,7 @@ host:~/AirsignerRelay/relay$ python3 unit_tests.py
 
 ## Check Winners
 
-### There is a script to check auction winners through the web API /claim endpoint
+### There is a script to check auction winners through the web API /claim endpoint.
 
 ### Check Winners like so:
 
@@ -49,7 +49,7 @@ burak_the_legend: {"burak_the_legend": "no auctions won"}
 
 ## Outputs
 
-### The Outputs for the different pieces will look like the following:
+### The outputs for the different pieces will look like so:
 
 ```
 host:~/AirsignerRelay/relay$ python3 relay_execution.py

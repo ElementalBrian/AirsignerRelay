@@ -32,6 +32,7 @@ class AirsignerExecution:
         self.logger.addHandler(stream_handler)
         self.logger.addHandler(file_handler)
         self.logger.info(f'{self.this}: Starting Airsigner Execution')
+        print(f'{self.this}: Starting Airsigner Execution')
 
 
     def signed_oracle_update(self, relay_key, auction_time, subscription_id, endpoint_id, searcher, encoded_parameters):
@@ -40,8 +41,8 @@ class AirsignerExecution:
             return {'failure': f'signature could not be retrieved, {relay_key} is not the relay key on file for this airsigner'}
         asset = self._asset_from_encoded_parameters(encoded_parameters["encodedParameters"])
         if asset == "":
-            print(f"no asset found for: {asset} of string length: {len(asset)}")
-            return {"failure": f"no asset found for: {asset} of string length: {len(asset)}"}
+            print(f'no asset found for: {asset} of string length: {len(asset)}')
+            return {'failure': f'no asset found for: {asset} of string length: {len(asset)}'}
         # airnode_response = pricing(asset, self.http_gateway_url, endpoint_id, self.http_gateway_key)
         airnode_response = coingecko_pricing(asset)
         price, airnode_time = airnode_response
@@ -55,6 +56,7 @@ class AirsignerExecution:
         dapi_signature = self._hash_and_sign(account, price, airnode_time, subscription_id, searcher)
         relayer_signature = self._hash_and_sign(account, price, auction_time, subscription_id, searcher)
         self.logger.info(f"{int(time.mktime(datetime.datetime.now().timetuple()))} {self.this}: asset {asset} price {price} at {airnode_time} signatures {dapi_signature} & {relayer_signature}")
+        print(f'{int(time.mktime(datetime.datetime.now().timetuple()))} {self.this}: asset {asset} price {price} at {airnode_time} signatures {dapi_signature} & {relayer_signature}')
         return {'asset': asset, 'auction_time': str(auction_time), 'dapi_signature': dapi_signature, "relayer_signature": relayer_signature,  'price': str(price), 'price_decimals': str(self.airnode_price_decimals), 'airnode_time': str(airnode_time), 'endpoint_id': endpoint_id, 'subscription_id': subscription_id, 'searcher': searcher}
 
     def _hash_and_sign(self, account, price, time, beacon_id, searcher):
