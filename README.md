@@ -1,4 +1,4 @@
-##  Welcome to Airsigner! This auction system allows whitelisted MEV searchers to place silent bids on the right to use a certain bundle of oracle updates that they retrieve from a data provider via a signed message from an HTTP endoing.
+##  Welcome to Airsigner! This auction system allows whitelisted MEV searchers to place silent bids on the right to use a certain bundle of oracle updates that they retrieve from a data provider via a signed message from an HTTP endpoint.
 
 
 ## Airsigner Execution
