@@ -1,4 +1,6 @@
-# Welcome to Airsigner! This auction system allows whitelisted MEV searchers to place silent bids for the right to use a certain bundle of oracle updates that they retrieve from a data provider via a signed message through an HTTP endpoint. https://dogebull.substack.com/p/coming-soon
+# Welcome to Airsigner! This auction system allows whitelisted MEV searchers to place silent bids for the right to use a certain bundle of oracle updates that they retrieve from a data provider via a signed message through an HTTP endpoint. 
+
+## Info about OEV: https://dogebull.substack.com/p/coming-soon
 
 ## Airsigner Execution
 
